@@ -67,8 +67,10 @@ public class AgentConfigController {
             formData.setPurpose(agent.getPurpose());
             formData.setTone(agent.getTone());
             formData.setDomainContext(agent.getDomainContext());
-            formData.setAllowedTopicsString(String.join(", ", agent.getAllowedTopics()));
-            formData.setRestrictedTopicsString(String.join(", ", agent.getRestrictedTopics()));
+            formData.setAllowedTopicsString(agent.getAllowedTopics() != null ? 
+                String.join(", ", agent.getAllowedTopics()) : "");
+            formData.setRestrictedTopicsString(agent.getRestrictedTopics() != null ? 
+                String.join(", ", agent.getRestrictedTopics()) : "");
             formData.setModelConfig(agent.getModelConfig());
             formData.setUserId(agent.getUserId());
             
