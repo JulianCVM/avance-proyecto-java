@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de API Keys - Avance AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hero {
+            background-color: #6610f2;
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .api-key-card {
+            transition: transform 0.2s;
+        }
+        .api-key-card:hover {
+            transform: translateY(-3px);
+        }
+        .provider-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .api-key-masked {
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        .badge-active {
+            background-color: #28a745;
+        }
+        .badge-inactive {
+            background-color: #dc3545;
+        }
+        .badge-default {
+            background-color: #6610f2;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Avance AI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/agents">Agentes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/chatbot">Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/api-keys">API Keys</a>
+                    </li>
+                </ul>
+                <!-- Área de usuario -->
+                <div th:if="${session.user != null}" class="user-profile">
+                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
+                            Usuario
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" href="/dashboard">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/settings">Configuración</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Cerrar sesión</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Gestión de API Keys</h1>
+            <p class="lead">Administra tus claves de API para diferentes servicios de IA</p>
+        </div>
+    </section>
+
+    <div class="container mb-5">
+        <!-- Alertas de éxito/error -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}">Operación exitosa</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}">Ha ocurrido un error</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="row">
+            <!-- Lista de API keys -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Tus API Keys</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Mensaje si no hay API keys -->
+                        <div th:if="${apiKeys == null || apiKeys.isEmpty()}" class="alert alert-info mb-0">
+                            No tienes claves de API guardadas. Añade una nueva clave para comenzar a utilizar los servicios de IA.
+                        </div>
+                        
+                        <!-- Lista de API keys -->
+                        <div th:if="${apiKeys != null && !apiKeys.isEmpty()}" class="row g-3">
+                            <div th:each="apiKey : ${apiKeys}" class="col-md-6">
+                                <div class="card api-key-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title d-flex align-items-center">
+                                                <img th:if="${apiKey.provider == 'gemini'}" src="/img/gemini-icon.png" alt="Gemini" class="provider-icon">
+                                                <img th:if="${apiKey.provider == 'openai'}" src="/img/openai-icon.png" alt="OpenAI" class="provider-icon">
+                                                <span th:text="${apiKey.name}">Nombre de la API</span>
+                                            </h5>
+                                            <div>
+                                                <span th:if="${apiKey.isActive}" class="badge badge-active">Activa</span>
+                                                <span th:if="${!apiKey.isActive}" class="badge badge-inactive">Inactiva</span>
+                                                <span th:if="${apiKey.isDefault}" class="badge badge-default ms-1">Por defecto</span>
+                                            </div>
+                                        </div>
+                                        <p class="card-text text-muted small mb-2" th:text="${apiKey.provider}">Proveedor</p>
+                                        <div class="api-key-masked mb-3" th:text="${apiKey.apiKey}">••••••••••••••••</div>
+                                        <form th:action="@{/api-keys/delete/{id}(id=${apiKey.id})}" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                onclick="return confirm('¿Estás seguro que deseas eliminar esta API key?')">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Formulario para añadir API key -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Añadir nueva API Key</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/api-keys/save}" method="post" th:object="${userRequest}" id="apiKeyForm">
+                            <div class="mb-3">
+                                <label for="apiKeyName" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="apiKeyName" th:field="*{apiKeyName}" 
+                                      placeholder="Ej: Mi API Gemini" required>
+                                <div class="form-text">Un nombre descriptivo para identificar esta API key</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="apiKeyProvider" class="form-label">Proveedor</label>
+                                <select class="form-select" id="apiKeyProvider" th:field="*{apiKeyProvider}" required>
+                                    <option value="">Selecciona un proveedor</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic Claude</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="currentApiKey" class="form-label">API Key</label>
+                                <input type="password" class="form-control" id="currentApiKey" th:field="*{currentApiKey}" 
+                                      placeholder="Ingresa tu clave de API" required>
+                                <div class="form-text">Tu clave de API será encriptada y almacenada de forma segura</div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-verify-key">
+                                    <i class="bi bi-check-circle"></i> Verificar API Key
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Guardar API Key
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Información sobre API Keys -->
+                <div class="card mt-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Información</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small">Las API Keys son necesarias para que los agentes puedan comunicarse con los modelos de IA como Gemini, GPT-4, Claude, etc.</p>
+                        <p class="small">Puedes obtener API keys en:</p>
+                        <ul class="small">
+                            <li><a href="https://ai.google.dev/" target="_blank">Google AI Studio (Gemini)</a></li>
+                            <li><a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></li>
+                            <li><a href="https://console.anthropic.com/account/keys" target="_blank">Anthropic Console</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p>© 2025 Avance AI. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Script para verificar API key
+        document.addEventListener('DOMContentLoaded', function() {
+            const verifyButton = document.querySelector('.btn-verify-key');
+            if (verifyButton) {
+                verifyButton.addEventListener('click', function() {
+                    const apiKey = document.getElementById('currentApiKey').value;
+                    const provider = document.getElementById('apiKeyProvider').value;
+                    
+                    if (!apiKey || !provider) {
+                        alert('Por favor, ingresa una API key y selecciona un proveedor');
+                        return;
+                    }
+                    
+                    // Cambiar estado del botón
+                    verifyButton.disabled = true;
+                    verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verificando...';
+                    
+                    // Enviar solicitud AJAX para verificar
+                    fetch('/api-keys/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `apiKey=${encodeURIComponent(apiKey)}&provider=${encodeURIComponent(provider)}`
+                    })
+                    .then(response => response.text())
+                    .then(result => {
+                        if (result === 'valid') {
+                            alert('¡API key verificada correctamente!');
+                        } else {
+                            alert('La API key no es válida o no se pudo verificar. Por favor, revisa los datos e intenta nuevamente.');
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error al verificar la API key: ' + error);
+                    })
+                    .finally(() => {
+                        // Restaurar estado del botón
+                        verifyButton.disabled = false;
+                        verifyButton.innerHTML = '<i class="bi bi-check-circle"></i> Verificar API Key';
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

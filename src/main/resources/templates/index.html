@@ -1,11 +1,360 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Avance AI - Plataforma de Inteligencia Artificial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/floating-chatbot.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hero {
+            background-color: #6610f2;
+            color: white;
+            padding: 60px 0;
+            margin-bottom: 30px;
+        }
+        .feature-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #6610f2;
+        }
+        .agent-list {
+            margin-top: 2rem;
+            margin-bottom: 3rem;
+        }
+        .agent-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .agent-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .agent-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-active {
+            background-color: #28a745;
+        }
+        .status-inactive {
+            background-color: #dc3545;
+        }
+        .badge-custom {
+            font-size: 0.7em;
+            padding: 0.4em 0.6em;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: #6610f2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .border-dashed {
+            border: 2px dashed #dee2e6;
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+    </style>
 </head>
 <body>
-    
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Avance AI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/agents">Agentes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/chatbot">Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api-keys">API Keys</a>
+                    </li>
+                </ul>
+                <!-- Área de usuario (Cambia según estado de autenticación) -->
+                <div th:if="${session.user != null}" class="user-profile">
+                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
+                            Usuario
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" href="/dashboard">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/settings">Configuración</a></li>
+                            <li><a class="dropdown-item" href="/api-keys">API Keys</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Cerrar sesión</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div th:unless="${session.user != null}" class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">Iniciar sesión</a>
+                    <a href="/register" class="btn btn-primary">Registrarse</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container text-center">
+            <h1 class="display-4">Avance AI</h1>
+            <p class="lead">Plataforma para crear, entrenar y usar agentes de IA personalizados</p>
+            <div class="mt-4">
+                <a href="#features" class="btn btn-light btn-lg me-2">Descubre más</a>
+                <a href="/register" class="btn btn-outline-light btn-lg">Comenzar gratis</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Características principales para todos los usuarios -->
+    <section id="features" class="py-5 bg-white">
+        <div class="container">
+            <h2 class="text-center mb-5">Aprovecha el poder de la IA generativa</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon">🤖</div>
+                            <h3>Agentes personalizados</h3>
+                            <p>Crea agentes de IA con personalidad y conocimientos específicos para tus necesidades</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon">🔐</div>
+                            <h3>Seguro y privado</h3>
+                            <p>Tus datos y conversaciones están protegidos con los más altos estándares de seguridad</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon">🌐</div>
+                            <h3>Múltiples modelos</h3>
+                            <p>Compatibilidad con los mejores modelos de IA: Gemini, GPT y Claude</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contenido para usuarios no autenticados -->
+    <div class="container mb-5 py-5" th:unless="${session.user != null}">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2>Crea agentes de IA que trabajen para ti</h2>
+                <p class="lead mb-4">Avance AI te permite crear asistentes virtuales personalizados para cualquier tarea o dominio de conocimiento.</p>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Asistentes virtuales para tu empresa</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Chatbots para atención al cliente</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Tutores virtuales para educación</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Agentes especializados en cualquier tema</li>
+                </ul>
+                <a href="/register" class="btn btn-primary btn-lg">Regístrate y comienza</a>
+            </div>
+            <div class="col-lg-6">
+                <img src="/img/ai-illustration.svg" alt="IA Ilustración" class="img-fluid" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido para usuarios autenticados -->
+    <div class="container mb-5" th:if="${session.user != null}">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Sección de agentes del usuario -->
+                <h2>Tus Agentes</h2>
+                <p class="text-muted">Gestiona y conversa con tus agentes personalizados</p>
+                
+                <div class="agent-list">
+                    <!-- Mensaje si no hay agentes -->
+                    <div class="alert alert-info" th:if="${userAgents == null || userAgents.isEmpty()}">
+                        No tienes agentes configurados. ¡Crea tu primer agente para comenzar!
+                        <a href="/agents/new" class="btn btn-primary btn-sm ms-3">Crear agente</a>
+                    </div>
+                    
+                    <!-- Lista de agentes -->
+                    <div class="row" th:if="${userAgents != null && !userAgents.isEmpty()}">
+                        <div class="col-md-6 mb-4" th:each="agent : ${userAgents}">
+                            <div class="card agent-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="card-title mb-0">
+                                            <span class="agent-status" th:classappend="${agent.active ? 'status-active' : 'status-inactive'}"></span>
+                                            <span th:text="${agent.name}">Nombre del Agente</span>
+                                        </h5>
+                                        <span class="badge bg-secondary badge-custom" th:text="${agent.modelConfig}">modelo</span>
+                                    </div>
+                                    <p class="card-text small text-muted mb-3" th:text="${agent.purpose}">Propósito del agente</p>
+                                    <div class="d-flex mt-3">
+                                        <a th:href="@{/chat(agentId=${agent.id})}" class="btn btn-sm btn-primary me-2">Chatear</a>
+                                        <a th:href="@{/agents/edit/{id}(id=${agent.id})}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card agent-card h-100 border-dashed">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                                    <div class="feature-icon">+</div>
+                                    <h5>Crear nuevo agente</h5>
+                                    <p class="text-muted">Personaliza un nuevo asistente IA</p>
+                                    <a href="/agents/new" class="btn btn-primary mt-2">Comenzar</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección de conversaciones recientes -->
+                <h2 class="mt-5">Conversaciones Recientes</h2>
+                <p class="text-muted">Continúa tus conversaciones donde las dejaste</p>
+                
+                <div class="list-group mb-4">
+                    <div class="alert alert-info" th:if="${recentSessions == null || recentSessions.isEmpty()}">
+                        No tienes conversaciones recientes.
+                    </div>
+                    <a th:each="session : ${recentSessions}" 
+                       th:href="@{/chat(chatSessionId=${session.id})}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1" th:text="${session.title}">Título de la conversación</h6>
+                            <small class="text-muted" th:text="${#temporals.format(session.lastActivity, 'dd/MM/yyyy HH:mm')}">Fecha</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill" th:text="${session.agentName}">Agente</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Estadísticas del usuario -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Estadísticas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Agentes</span>
+                                <span th:text="${userStats?.agentCount ?: 0}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Conversaciones</span>
+                                <span th:text="${userStats?.sessionCount ?: 0}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Mensajes totales</span>
+                                <span th:text="${userStats?.messageCount ?: 0}">0</span>
+                            </div>
+                        </div>
+                        <a href="/dashboard" class="btn btn-sm btn-outline-primary w-100">Ver más detalles</a>
+                    </div>
+                </div>
+                
+                <!-- API Keys -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">API Keys</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small">Para utilizar agentes personalizados, necesitas configurar tus claves de API.</p>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>API Keys configuradas</span>
+                            <span th:text="${userApiKeyCount ?: 0}">0</span>
+                        </div>
+                        <a href="/api-keys" class="btn btn-sm btn-primary w-100">Gestionar API Keys</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>Avance AI</h5>
+                    <p class="small">Plataforma para crear, entrenar y usar agentes de IA personalizados.</p>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h6>Enlaces</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="/" class="text-white text-decoration-none">Inicio</a></li>
+                        <li><a href="/agents" class="text-white text-decoration-none">Agentes</a></li>
+                        <li><a href="/api-keys" class="text-white text-decoration-none">API Keys</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <h6>Recursos</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="#" class="text-white text-decoration-none">Documentación</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Tutoriales</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Preguntas frecuentes</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6>Contacto</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="mailto:info@avance-ai.com" class="text-white text-decoration-none">info@avance-ai.com</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Soporte</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-3 bg-light opacity-25">
+            <p class="text-center mb-0 small">© 2025 Avance AI. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/floating-chatbot.js"></script>
 </body>
 </html>

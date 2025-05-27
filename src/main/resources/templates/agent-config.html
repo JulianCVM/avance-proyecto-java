@@ -5,100 +5,445 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración de Agente IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .hero {
+            background: linear-gradient(135deg, #6610f2 0%, #5a0ddd 100%);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background-color: #6610f2;
+            border-color: #6610f2;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #5a0ddd;
+            border-color: #5a0ddd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 16, 242, 0.3);
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #6610f2;
+            box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.25);
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: #6610f2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        footer {
+            margin-top: auto;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .config-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .card-header {
+            border-bottom: none;
+            padding: 15px 20px;
+            font-weight: 600;
+            border-radius: 15px 15px 0 0;
+        }
+        .card-body {
+            padding: 25px 30px;
+            background-color: white;
+        }
+        .header-basic {
+            background-color: #6610f2;
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+        .header-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        .field-group {
+            margin-bottom: 24px;
+        }
+        .field-group:last-child {
+            margin-bottom: 0;
+        }
+        .field-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #343a40;
+            display: block;
+        }
+        .field-help {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .field-input {
+            position: relative;
+        }
+        .form-control, .form-select {
+            padding-left: 40px;
+            border-radius: 4px;
+        }
+        .field-icon {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .bg-primary {
+            background: linear-gradient(135deg, #6610f2 0%, #5a0ddd 100%) !important;
+        }
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-control::placeholder, .form-select::placeholder {
+            color: #adb5bd;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <h1 class="mb-4">Configuración de Agente IA</h1>
-        
-        <form id="agentForm" th:object="${agent}" th:action="@{/agents/save}" method="post">
-            <input type="hidden" th:field="*{id}">
-            
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h5 m-0">Datos básicos</h2>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="bi bi-cpu me-2"></i>
+                <span>Avance AI</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house-door me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/agents"><i class="bi bi-robot me-1"></i> Agentes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/chatbot"><i class="bi bi-chat-dots me-1"></i> Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api-keys"><i class="bi bi-key me-1"></i> API Keys</a>
+                    </li>
+                </ul>
+                <!-- Área de usuario (Cambia según estado de autenticación) -->
+                <div th:if="${session.user != null}" class="user-profile">
+                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
+                            Usuario
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear me-2"></i> Configuración</a></li>
+                            <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i> API Keys</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión</a></li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Nombre del Agente*</label>
-                        <input type="text" class="form-control" id="name" th:field="*{name}" required 
-                               placeholder="Ej: Asistente de Ventas">
-                        <div class="form-text">Un nombre descriptivo para identificar a tu agente.</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Descripción</label>
-                        <textarea class="form-control" id="description" th:field="*{description}" rows="2"
-                                  placeholder="Ej: Este agente ayuda a responder preguntas sobre nuestros productos."></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="purpose" class="form-label">Propósito*</label>
-                        <textarea class="form-control" id="purpose" th:field="*{purpose}" rows="3" required
-                                  placeholder="Ej: Ayudar a los clientes a encontrar el producto adecuado según sus necesidades y resolver dudas frecuentes."></textarea>
-                        <div class="form-text">Define claramente qué debe hacer tu agente. Esta información guiará su comportamiento.</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="tone" class="form-label">Tono de comunicación*</label>
-                        <select class="form-select" id="tone" th:field="*{tone}" required>
-                            <option value="">Selecciona un tono</option>
-                            <option value="formal">Formal</option>
-                            <option value="casual">Casual</option>
-                            <option value="amigable">Amigable</option>
-                            <option value="profesional">Profesional</option>
-                            <option value="técnico">Técnico</option>
-                            <option value="humorístico">Humorístico</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modelConfig" class="form-label">Modelo de IA</label>
-                        <select class="form-select" id="modelConfig" th:field="*{modelConfig}">
-                            <option value="gpt-4">GPT-4 (Más capaz, más lento)</option>
-                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Rápido, buena relación calidad/velocidad)</option>
-                        </select>
-                        <div class="form-text">El modelo de IA afecta la calidad de las respuestas y el costo.</div>
-                    </div>
+                <div th:unless="${session.user != null}" class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2"><i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión</a>
+                    <a href="/register" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Registrarse</a>
                 </div>
             </div>
-        
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h5 m-0">Conocimiento y contexto</h2>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="domainContext" class="form-label">Contexto de dominio</label>
-                        <textarea class="form-control" id="domainContext" th:field="*{domainContext}" rows="4"
-                                  placeholder="Describe el contexto específico en el que operará este agente. Ej: Este agente es para una tienda de electrónica que vende smartphones, tablets y accesorios."></textarea>
-                        <div class="form-text">Proporciona información básica sobre el dominio en el que operará el agente.</div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container text-center">
+            <h1 class="display-5 fw-bold mb-3">
+                <i class="bi bi-robot me-2"></i>
+                <span th:if="${isNew}">Crear Nuevo Agente</span>
+                <span th:unless="${isNew}">Editar Agente</span>
+            </h1>
+            <p class="lead mb-0">Personaliza tu asistente virtual para adaptarlo perfectamente a tus necesidades</p>
+            <div class="d-inline-flex align-items-center justify-content-center mt-4">
+                <span class="badge rounded-pill bg-white text-primary px-3 py-2 me-2">AI Personalizada</span>
+                <span class="badge rounded-pill bg-white text-primary px-3 py-2 me-2">Configurable</span>
+                <span class="badge rounded-pill bg-white text-primary px-3 py-2">Asistente Inteligente</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="container mb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <form id="agentForm" th:object="${agent}" th:action="@{/agents/save}" method="post">
+                    <input type="hidden" th:field="*{id}">
+                    
+                    <!-- Sección: Información Básica -->
+                    <div class="config-card">
+                        <div class="card-header header-basic">
+                            <div class="header-icon">
+                                <i class="bi bi-info-circle"></i>
+                            </div>
+                            <h2 class="h6 m-0">Información Básica</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="field-group">
+                                <label for="name" class="field-label">Nombre del Agente*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-robot"></i>
+                                    </div>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}" required 
+                                        placeholder="Ej: Asistente de Ventas">
+                                </div>
+                                <div class="field-help">Un nombre descriptivo para identificar a tu agente.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="description" class="field-label">Descripción</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-card-text"></i>
+                                    </div>
+                                    <textarea class="form-control" id="description" th:field="*{description}" rows="2"
+                                        placeholder="Ej: Este agente ayuda a responder preguntas sobre nuestros productos."></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="purpose" class="field-label">Propósito*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-bullseye"></i>
+                                    </div>
+                                    <textarea class="form-control" id="purpose" th:field="*{purpose}" rows="3" required
+                                        placeholder="Ej: Ayudar a los clientes a encontrar el producto adecuado según sus necesidades y resolver dudas frecuentes."></textarea>
+                                </div>
+                                <div class="field-help">Define claramente qué debe hacer tu agente. Esta información guiará su comportamiento.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="tone" class="field-label">Tono de comunicación*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-chat-quote"></i>
+                                    </div>
+                                    <select class="form-select" id="tone" th:field="*{tone}" required>
+                                        <option value="">Selecciona un tono</option>
+                                        <option value="formal">Formal</option>
+                                        <option value="casual">Casual</option>
+                                        <option value="amigable">Amigable</option>
+                                        <option value="profesional">Profesional</option>
+                                        <option value="técnico">Técnico</option>
+                                        <option value="humorístico">Humorístico</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <!-- Sección: Conocimiento y Contexto -->
+                    <div class="config-card">
+                        <div class="card-header header-basic">
+                            <div class="header-icon">
+                                <i class="bi bi-book"></i>
+                            </div>
+                            <h2 class="h6 m-0">Conocimiento y Contexto</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="field-group">
+                                <label for="domainContext" class="field-label">Contexto de dominio</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-globe"></i>
+                                    </div>
+                                    <textarea class="form-control" id="domainContext" th:field="*{domainContext}" rows="4"
+                                        placeholder="Describe el contexto específico en el que operará este agente. Ej: Este agente es para una tienda de electrónica que vende smartphones, tablets y accesorios."></textarea>
+                                </div>
+                                <div class="field-help">Proporciona información básica sobre el dominio en el que operará el agente.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="allowedTopics" class="field-label">Temas permitidos</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
+                                    <input type="text" class="form-control" id="allowedTopics" th:field="*{allowedTopicsString}" 
+                                        placeholder="Ej: productos, precios, envíos, garantías, devoluciones">
+                                </div>
+                                <div class="field-help">Lista de temas separados por comas sobre los que el agente debe hablar.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="restrictedTopics" class="field-label">Temas restringidos</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-x-circle"></i>
+                                    </div>
+                                    <input type="text" class="form-control" id="restrictedTopics" th:field="*{restrictedTopicsString}" 
+                                        placeholder="Ej: políticas internas, información personal de empleados, competidores">
+                                </div>
+                                <div class="field-help">Lista de temas separados por comas sobre los que el agente no debe hablar.</div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="allowedTopics" class="form-label">Temas permitidos</label>
-                        <input type="text" class="form-control" id="allowedTopics" th:field="*{allowedTopicsString}" 
-                               placeholder="Ej: productos, precios, envíos, garantías, devoluciones">
-                        <div class="form-text">Lista de temas separados por comas sobre los que el agente debe hablar.</div>
+                    <!-- Sección: Configuración Técnica -->
+                    <div class="config-card">
+                        <div class="card-header header-basic">
+                            <div class="header-icon">
+                                <i class="bi bi-gear"></i>
+                            </div>
+                            <h2 class="h6 m-0">Configuración Técnica</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="field-group">
+                                <label for="modelConfig" class="field-label">Modelo de IA*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-cpu"></i>
+                                    </div>
+                                    <select class="form-select" id="modelConfig" th:field="*{modelConfig}" required>
+                                        <option value="gpt-4">GPT-4 (Más capaz, más lento)</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Rápido, buena relación calidad/velocidad)</option>
+                                        <option value="gemini-pro">Gemini Pro (Google)</option>
+                                    </select>
+                                </div>
+                                <div class="field-help">El modelo de IA afecta la calidad de las respuestas y el costo.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="modelProvider" class="field-label">Proveedor de modelo*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <select class="form-select" id="modelProvider" name="modelProvider" required>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="gemini">Google Gemini</option>
+                                    </select>
+                                </div>
+                                <div class="field-help">Selecciona el proveedor del modelo de IA que usará este agente.</div>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="apiToken" class="field-label">API Token*</label>
+                                <div class="field-input">
+                                    <div class="field-icon">
+                                        <i class="bi bi-key"></i>
+                                    </div>
+                                    <input type="text" class="form-control" id="apiToken" th:field="*{apiToken}" required>
+                                </div>
+                                <div class="field-help">Token de API necesario para la comunicación con el servicio de IA. Puedes usar una de tus API Keys configuradas en la sección de "API Keys".</div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="restrictedTopics" class="form-label">Temas restringidos</label>
-                        <input type="text" class="form-control" id="restrictedTopics" th:field="*{restrictedTopicsString}" 
-                               placeholder="Ej: políticas internas, información personal de empleados, competidores">
-                        <div class="form-text">Lista de temas separados por comas sobre los que el agente no debe hablar.</div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                        <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/agents'">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Guardar Agente
+                        </button>
                     </div>
-                </div>
+                </form>
             </div>
-            
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-                <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/agents'">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Guardar Agente</button>
-            </div>
-        </form>
+        </div>
     </div>
     
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0">© 2025 Avance AI. Todos los derechos reservados.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-white me-3"><i class="bi bi-github"></i></a>
+                    <a href="#" class="text-white me-3"><i class="bi bi-twitter"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/agent-config.js"></script>
+    <script>
+        // Actualizar campo de proveedor según el modelo seleccionado
+        document.getElementById('modelConfig').addEventListener('change', function() {
+            const provider = document.getElementById('modelProvider');
+            if (this.value.includes('gpt')) {
+                provider.value = 'openai';
+            } else if (this.value.includes('gemini')) {
+                provider.value = 'gemini';
+            }
+        });
+        
+        // Mejorar la experiencia de usuario con efectos visuales
+        document.querySelectorAll('.form-control, .form-select').forEach(element => {
+            element.addEventListener('focus', function() {
+                this.closest('.field-group').classList.add('was-validated');
+            });
+            
+            // Autosize para textareas
+            if (element.tagName === 'TEXTAREA') {
+                element.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = (this.scrollHeight) + 'px';
+                });
+            }
+        });
+        
+        // Cargar APIs guardadas (placeholder)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Aquí se podría añadir código para cargar las API keys del usuario automáticamente
+        });
+    </script>
 </body>
 </html> 

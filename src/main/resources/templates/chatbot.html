@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot - Avance AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .hero {
+            background-color: #6610f2;
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+        .btn-primary {
+            background-color: #6610f2;
+            border-color: #6610f2;
+        }
+        .btn-primary:hover {
+            background-color: #5a0ddd;
+            border-color: #5a0ddd;
+        }
+        .form-control:focus {
+            border-color: #6610f2;
+            box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.25);
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: #6610f2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #6610f2;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        .user-message {
+            justify-content: flex-end;
+        }
+        .bot-message {
+            justify-content: flex-start;
+        }
+        .message-content {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .user-message .message-content {
+            background-color: #6610f2;
+            color: white;
+            border-top-right-radius: 0;
+        }
+        .bot-message .message-content {
+            background-color: #e9ecef;
+            color: #212529;
+            border-top-left-radius: 0;
+        }
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-right: 10px;
+        }
+        .timestamp {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: right;
+        }
+        footer {
+            margin-top: auto;
+        }
+        .model-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0,0,0,0.2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Avance AI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/agents">Agentes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/chatbot">Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api-keys">API Keys</a>
+                    </li>
+                </ul>
+                <!-- Área de usuario (Cambia según estado de autenticación) -->
+                <div th:if="${session.user != null}" class="user-profile">
+                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
+                            Usuario
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" href="/dashboard">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/settings">Configuración</a></li>
+                            <li><a class="dropdown-item" href="/api-keys">API Keys</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Cerrar sesión</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div th:unless="${session.user != null}" class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">Iniciar sesión</a>
+                    <a href="/register" class="btn btn-primary">Registrarse</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Chatbot</h1>
+            <p class="lead">Conversa con nuestro asistente virtual impulsado por IA</p>
+        </div>
+    </section>
+
+    <div class="container mb-5">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="chat-container">
+                    <div class="chat-header position-relative">
+                        <h4 class="mb-0">Asistente Virtual de Avance AI</h4>
+                        <p class="mb-0">¿En qué puedo ayudarte hoy?</p>
+                        <span class="model-badge" id="model-badge">Gemini Pro</span>
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="message bot-message">
+                            <div class="message-content">
+                                ¡Hola! Soy el asistente virtual de Avance AI impulsado por Google Gemini. Estoy aquí para responder tus preguntas sobre nuestra plataforma o ayudarte con consultas generales. ¿En qué puedo ayudarte?
+                                <div class="timestamp">Ahora</div>
+                            </div>
+                        </div>
+                        <!-- Los mensajes se agregarán aquí dinámicamente -->
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="message-input" placeholder="Escribe tu mensaje aquí..." class="form-control">
+                        <button id="send-button" class="btn btn-primary ms-2">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Configuración del chatbot</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="model-select" class="form-label">Modelo de IA</label>
+                            <select id="model-select" class="form-select">
+                                <option value="gemini-pro" selected>Google Gemini Pro</option>
+                                <option value="gpt-3.5-turbo">OpenAI GPT-3.5 Turbo</option>
+                                <option value="gpt-4">OpenAI GPT-4</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="save-conversation" checked>
+                            <label class="form-check-label" for="save-conversation">Guardar esta conversación</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">© 2025 Avance AI. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let sessionId = '';
+        let currentModel = 'gemini-pro';
+        
+        // Elementos del DOM
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const modelSelect = document.getElementById('model-select');
+        const modelBadge = document.getElementById('model-badge');
+        const saveConversation = document.getElementById('save-conversation');
+        
+        // Actualizar el badge del modelo cuando cambia la selección
+        modelSelect.addEventListener('change', function() {
+            currentModel = this.value;
+            modelBadge.textContent = getModelDisplayName(currentModel);
+        });
+        
+        // Obtener nombre legible del modelo
+        function getModelDisplayName(modelId) {
+            const models = {
+                'gemini-pro': 'Gemini Pro',
+                'gpt-3.5-turbo': 'GPT-3.5',
+                'gpt-4': 'GPT-4'
+            };
+            return models[modelId] || modelId;
+        }
+        
+        // Función para agregar un mensaje al chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                    <div class="timestamp">${timeString}</div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Función para enviar un mensaje al servidor
+        async function sendMessage(content) {
+            try {
+                // Mostrar indicador de "escribiendo..."
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot-message typing-indicator';
+                typingDiv.innerHTML = `
+                    <div class="message-content">
+                        <span class="typing-animation">Escribiendo<span>.</span><span>.</span><span>.</span></span>
+                    </div>
+                `;
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                const response = await fetch('/chatbot/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: content,
+                        sessionId: sessionId,
+                        model: currentModel,
+                        saveConversation: saveConversation.checked
+                    })
+                });
+                
+                // Eliminar el indicador de "escribiendo..."
+                if (typingDiv.parentNode) {
+                    typingDiv.parentNode.removeChild(typingDiv);
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                
+                const data = await response.json();
+                sessionId = data.sessionId;
+                
+                // Agregar la respuesta del bot
+                addMessage(data.response, false);
+            } catch (error) {
+                console.error('Error al enviar mensaje:', error);
+                
+                // Eliminar el indicador de "escribiendo..." en caso de error
+                const typingIndicator = document.querySelector('.typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.parentNode.removeChild(typingIndicator);
+                }
+                
+                addMessage('Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo más tarde.', false);
+            }
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                addMessage(message, true);
+                messageInput.value = '';
+                sendMessage(message);
+            }
+        });
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const message = messageInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    messageInput.value = '';
+                    sendMessage(message);
+                }
+            }
+        });
+        
+        // Enfocar el input al cargar la página
+        window.addEventListener('load', () => {
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html> 
