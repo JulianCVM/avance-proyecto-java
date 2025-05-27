@@ -100,6 +100,7 @@ public class RestClientService {
             
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             
+            @SuppressWarnings("rawtypes")
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     apiUrl + "/chat/completions", 
                     requestEntity, 
@@ -108,11 +109,14 @@ public class RestClientService {
             
             // Extraer la respuesta del modelo de IA
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> responseBody = response.getBody();
+                @SuppressWarnings("unchecked")
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
                 
                 if (choices != null && !choices.isEmpty()) {
                     Map<String, Object> choice = choices.get(0);
+                    @SuppressWarnings("unchecked")
                     Map<String, String> message = (Map<String, String>) choice.get("message");
                     
                     if (message != null && message.containsKey("content")) {

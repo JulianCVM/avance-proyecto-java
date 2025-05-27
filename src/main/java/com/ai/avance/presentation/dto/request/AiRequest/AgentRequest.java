@@ -22,7 +22,9 @@ public class AgentRequest {
     private String tone;
     private String styleConfig;
     private String domainContext;
+    @Builder.Default
     private List<String> allowedTopics = new ArrayList<>();
+    @Builder.Default
     private List<String> restrictedTopics = new ArrayList<>();
     private String modelConfig;
 } 

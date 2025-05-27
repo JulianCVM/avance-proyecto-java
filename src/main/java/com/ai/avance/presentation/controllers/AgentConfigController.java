@@ -36,7 +36,7 @@ public class AgentConfigController {
         // Inicializar agentes demo
         aiServiceManager.initDemoAgents();
         
-        List<AgentDTO> agents = aiServiceManager.getUserAgents(userIdToUse);
+        List<AgentDTO> agents = aiServiceManager.getUserAgentDtos(userIdToUse);
         model.addAttribute("agents", agents);
         return "agent-list";
     }
@@ -56,7 +56,7 @@ public class AgentConfigController {
      */
     @GetMapping("/edit/{agentId}")
     public String editAgentForm(@PathVariable Long agentId, Model model) {
-        Optional<AgentDTO> agentOpt = aiServiceManager.getAgentById(agentId);
+        Optional<AgentDTO> agentOpt = aiServiceManager.getAgentDtoById(agentId);
         
         if (agentOpt.isPresent()) {
             AgentDTO agent = agentOpt.get();
@@ -93,11 +93,11 @@ public class AgentConfigController {
             
             if (agent.getId() == null) {
                 // Es un agente nuevo
-                aiServiceManager.createAgent(agent, formData.getUserId() != null ? formData.getUserId() : 1L);
+                aiServiceManager.createAgentDto(agent, formData.getUserId() != null ? formData.getUserId() : 1L);
                 redirectAttributes.addFlashAttribute("successMessage", "¡Agente creado exitosamente!");
             } else {
                 // Es una actualización
-                aiServiceManager.updateAgent(agent.getId(), agent);
+                aiServiceManager.updateAgentDto(agent.getId(), agent);
                 redirectAttributes.addFlashAttribute("successMessage", "¡Agente actualizado exitosamente!");
             }
             
@@ -115,11 +115,31 @@ public class AgentConfigController {
     @PostMapping("/delete/{id}")
     public String deleteAgent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            aiServiceManager.deleteAgent(id);
+            aiServiceManager.deleteAgentDto(id);
             redirectAttributes.addFlashAttribute("successMessage", "Agente eliminado exitosamente");
         } catch (Exception e) {
             log.error("Error al eliminar el agente con ID: {}", id, e);
             redirectAttributes.addFlashAttribute("errorMessage", "Error al eliminar el agente");
+        }
+        return "redirect:/agents";
+    }
+    
+    /**
+     * Activa o desactiva un agente.
+     */
+    @PostMapping("/toggle/{id}")
+    public String toggleAgentActivation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Optional<AgentDTO> updated = aiServiceManager.toggleAgentDtoActivation(id);
+            if (updated.isPresent()) {
+                String status = updated.get().isActive() ? "activado" : "desactivado";
+                redirectAttributes.addFlashAttribute("successMessage", "Agente " + status + " exitosamente");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "No se pudo encontrar el agente");
+            }
+        } catch (Exception e) {
+            log.error("Error al cambiar estado del agente con ID: {}", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Error al cambiar el estado del agente");
         }
         return "redirect:/agents";
     }
@@ -204,6 +224,7 @@ public class AgentConfigController {
                 .restrictedTopics(restrictedTopics)
                 .modelConfig(formData.getModelConfig())
                 .userId(formData.getUserId())
+                .active(true) // Por defecto, los nuevos agentes están activos
                 .build();
     }
 } 

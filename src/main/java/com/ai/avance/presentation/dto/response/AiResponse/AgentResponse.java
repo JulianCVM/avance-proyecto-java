@@ -27,7 +27,9 @@ public class AgentResponse {
     private LocalDateTime updatedAt;
     private Long userId;
     private String domainContext;
+    @Builder.Default
     private List<String> allowedTopics = new ArrayList<>();
+    @Builder.Default
     private List<String> restrictedTopics = new ArrayList<>();
     private boolean active;
     private String modelConfig;

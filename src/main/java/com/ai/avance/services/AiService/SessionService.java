@@ -3,6 +3,7 @@ package com.ai.avance.services.AiService;
 import com.ai.avance.presentation.dto.ChatDTO.SessionDTO;
 import com.ai.avance.presentation.dto.ChatDTO.AgentDTO;
 import com.ai.avance.presentation.dto.ChatDTO.MessageDTO;
+import com.ai.avance.services.AiServiceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SessionService {
 
-    private final AgentService agentService;
+    private final AiServiceManager aiServiceManager;
     
     // Simulación de base de datos en memoria
     private final Map<Long, SessionDTO> sessions = new ConcurrentHashMap<>();
@@ -37,7 +38,7 @@ public class SessionService {
      * @return la sesión de chat creada o null si el agente no existe
      */
     public SessionDTO createSession(Long userId, Long agentId) {
-        Optional<AgentDTO> agentOpt = agentService.getAgentById(agentId);
+        Optional<AgentDTO> agentOpt = aiServiceManager.getAgentDtoById(agentId);
         
         if (agentOpt.isEmpty()) {
             log.error("No se puede crear sesión con agente inexistente: {}", agentId);

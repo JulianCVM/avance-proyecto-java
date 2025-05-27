@@ -24,23 +24,52 @@ public class AgentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AgentResponse> getAgentById(@PathVariable Long id) {
-        return aiServiceManager.getAgentById(id)
+        return aiServiceManager.getAgentDtoById(id)
                 .map(this::convertToResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping
+    public ResponseEntity<List<AgentResponse>> getUserAgents(@RequestHeader(value = "User-Id", defaultValue = "1") Long userId) {
+        List<AgentResponse> agents = aiServiceManager.getUserAgentDtos(userId)
+                .stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(agents);
+    }
+
     @PostMapping
     public ResponseEntity<AgentResponse> createAgent(@RequestBody AgentRequest request, 
-                                                    @RequestHeader("User-Id") Long userId) {
+                                                    @RequestHeader(value = "User-Id", defaultValue = "1") Long userId) {
         AgentDTO agentDTO = convertToDTO(request);
-        AgentDTO createdAgent = aiServiceManager.createAgent(agentDTO, userId);
+        AgentDTO createdAgent = aiServiceManager.createAgentDto(agentDTO, userId);
         return new ResponseEntity<>(convertToResponse(createdAgent), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AgentResponse> updateAgent(@PathVariable Long id, 
+                                                   @RequestBody AgentRequest request) {
+        AgentDTO agentDTO = convertToDTO(request);
+        agentDTO.setId(id);
+        
+        return aiServiceManager.updateAgentDto(id, agentDTO)
+                .map(this::convertToResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/toggle")
+    public ResponseEntity<AgentResponse> toggleActivation(@PathVariable Long id) {
+        return aiServiceManager.toggleAgentDtoActivation(id)
+                .map(this::convertToResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAgent(@PathVariable Long id) {
-        aiServiceManager.deleteAgent(id);
+        aiServiceManager.deleteAgentDto(id);
         return ResponseEntity.noContent().build();
     }
     

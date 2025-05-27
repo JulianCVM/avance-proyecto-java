@@ -1,14 +1,13 @@
 package com.ai.avance.services.AiService;
 
-import com.ai.avance.data.mappers.ChatMapper;
-import com.ai.avance.data.repositories.ChatRepository;
-import com.ai.avance.presentation.dto.ChatDTO;
 import com.ai.avance.presentation.dto.ChatDTO.MessageDTO;
 import com.ai.avance.presentation.dto.ChatDTO.SessionDTO;
 import com.ai.avance.presentation.dto.ChatDTO.AgentDTO;
+import com.ai.avance.services.AiServiceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,20 +21,21 @@ import java.util.Optional;
 public class AssistantService {
 
     private final RestClientService restClientService;
-    private final AgentService agentService;
+    private final AiServiceManager aiServiceManager;
     private final ChatSessionService chatSessionService;
 
     /**
      * Procesa un mensaje del usuario y obtiene una respuesta del asistente IA.
      * 
      * @param chatSession La sesión de chat actual
-     * @param userMessage El mensaje del usuario
+     * @param messageContent El contenido del mensaje del usuario
      * @return La respuesta generada por el asistente IA
      */
-    public MessageDTO processUserMessage(SessionDTO chatSession, String userMessage) {
+    @Transactional
+    public MessageDTO processUserMessage(SessionDTO chatSession, String messageContent) {
         try {
             // Obtener la configuración del agente asociado a esta conversación
-            Optional<AgentDTO> agentOpt = agentService.getAgentById(chatSession.getAgentId());
+            Optional<AgentDTO> agentOpt = aiServiceManager.getAgentDtoById(chatSession.getAgentId());
             
             if (agentOpt.isEmpty()) {
                 log.error("No se encontró el agente con ID: {}", chatSession.getAgentId());
@@ -51,40 +51,61 @@ public class AssistantService {
             }
             
             // Crear y añadir el mensaje del usuario a la conversación
-            MessageDTO userMsgEntity = MessageDTO.builder()
-                    .chatSessionId(chatSession.getId())
-                    .content(userMessage)
-                    .role("user")
-                    .timestamp(LocalDateTime.now())
-                    .build();
+            MessageDTO userMessage = createUserMessage(chatSession.getId(), messageContent);
             
             // Guardar mensaje del usuario
-            chatSessionService.addMessageToSession(chatSession.getId(), userMsgEntity);
+            boolean saved = chatSessionService.addMessageToSession(chatSession.getId(), userMessage);
+            if (!saved) {
+                log.error("No se pudo guardar el mensaje del usuario en la sesión: {}", chatSession.getId());
+                return createErrorMessage(chatSession.getId());
+            }
+            
+            // Obtener todos los mensajes de la sesión
+            var messages = chatSessionService.getSessionMessages(chatSession.getId());
             
             // Obtener respuesta del modelo IA
-            String aiResponse = restClientService.getAiResponse(
-                    chatSessionService.getSessionMessages(chatSession.getId()),
-                    agent
-            );
+            String aiResponse = restClientService.getAiResponse(messages, agent);
             
             // Crear la respuesta del asistente
-            MessageDTO assistantMsgEntity = MessageDTO.builder()
-                    .chatSessionId(chatSession.getId())
-                    .content(aiResponse)
-                    .role("assistant")
-                    .timestamp(LocalDateTime.now())
-                    .modelUsed(agent.getModelConfig())
-                    .build();
+            MessageDTO assistantMessage = createAssistantMessage(chatSession.getId(), aiResponse, agent.getModelConfig());
+            
+            // Guardar mensaje del asistente
+            chatSessionService.addMessageToSession(chatSession.getId(), assistantMessage);
             
             // Actualizar la sesión de chat
             chatSessionService.updateSessionActivity(chatSession.getId());
             
-            return assistantMsgEntity;
+            return assistantMessage;
             
         } catch (Exception e) {
             log.error("Error al procesar mensaje de usuario", e);
             return createErrorMessage(chatSession.getId());
         }
+    }
+    
+    /**
+     * Crea un mensaje de usuario para añadir a la conversación.
+     */
+    private MessageDTO createUserMessage(Long chatSessionId, String content) {
+        return MessageDTO.builder()
+                .chatSessionId(chatSessionId)
+                .content(content)
+                .role("user")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+    
+    /**
+     * Crea un mensaje del asistente con la respuesta generada.
+     */
+    private MessageDTO createAssistantMessage(Long chatSessionId, String content, String modelUsed) {
+        return MessageDTO.builder()
+                .chatSessionId(chatSessionId)
+                .content(content)
+                .role("assistant")
+                .timestamp(LocalDateTime.now())
+                .modelUsed(modelUsed)
+                .build();
     }
     
     /**
