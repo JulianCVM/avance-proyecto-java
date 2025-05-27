@@ -58,6 +58,7 @@ public class ChatDTO {
         private LocalDateTime createdAt;
         private LocalDateTime lastActivity;
         private boolean active;
+        @Builder.Default
         private List<MessageDTO> messages = new ArrayList<>();
     }
     
@@ -74,7 +75,9 @@ public class ChatDTO {
         private String description;
         private String purpose;
         private String tone;
+        @Builder.Default
         private List<String> allowedTopics = new ArrayList<>();
+        @Builder.Default
         private List<String> restrictedTopics = new ArrayList<>();
         private boolean active;
         private String modelConfig;

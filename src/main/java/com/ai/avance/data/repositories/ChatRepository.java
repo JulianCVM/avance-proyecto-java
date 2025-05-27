@@ -1,18 +1,19 @@
 package com.ai.avance.data.repositories;
 
-import com.ai.avance.data.entities.ConversationEntity.ChatSessionEntity;
-import com.ai.avance.data.entities.ConversationEntity.MessageEntity;
+import com.ai.avance.data.entities.ConversationEntities.ChatSessionEntity;
+import com.ai.avance.data.entities.ConversationEntities.MessageEntity;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositorio para gestionar las operaciones CRUD de las sesiones de chat.
+ * Interfaz para el repositorio de chat que permite gestionar sesiones y mensajes.
+ * Esta interfaz es implementada por ChatRepositoryImpl.
  */
 public interface ChatRepository {
     
     /**
-     * Guarda una nueva sesión de chat o actualiza una existente.
+     * Guarda o actualiza una sesión de chat.
      */
     ChatSessionEntity saveSession(ChatSessionEntity session);
     
@@ -37,7 +38,7 @@ public interface ChatRepository {
     void deleteSessionById(Long id);
     
     /**
-     * Guarda un nuevo mensaje en una sesión.
+     * Guarda un mensaje en una sesión de chat.
      */
     MessageEntity saveMessage(MessageEntity message);
     

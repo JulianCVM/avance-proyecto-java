@@ -3,9 +3,9 @@ package com.ai.avance.presentation.controllers;
 import com.ai.avance.presentation.dto.ChatDTO.AgentDTO;
 import com.ai.avance.presentation.dto.ChatDTO.MessageDTO;
 import com.ai.avance.presentation.dto.ChatDTO.SessionDTO;
-import com.ai.avance.services.AiService.AgentService;
 import com.ai.avance.services.AiService.AssistantService;
 import com.ai.avance.services.AiService.ChatSessionService;
+import com.ai.avance.services.AiServiceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +28,7 @@ import java.util.Optional;
 public class ChatController {
 
     private final AssistantService assistantService;
-    private final AgentService agentService;
+    private final AiServiceManager aiServiceManager;
     private final ChatSessionService chatSessionService;
 
     /**
@@ -55,6 +54,7 @@ public class ChatController {
             
             // Crear respuesta
             Map<String, Object> response = new HashMap<>();
+            response.put("sessionId", chatSession.getId());
             response.put("role", responseMessage.getRole());
             response.put("content", responseMessage.getContent());
             response.put("timestamp", responseMessage.getTimestamp().toString());
@@ -66,6 +66,7 @@ public class ChatController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("role", "system");
             errorResponse.put("content", "Error al procesar tu mensaje. Por favor, intenta de nuevo.");
+            errorResponse.put("error", e.getMessage());
             return ResponseEntity.ok(errorResponse);
         }
     }
@@ -75,13 +76,15 @@ public class ChatController {
      */
     private SessionDTO getChatSession(Long chatSessionId, Long agentId, Long userId) {
         // Verificar si ya existe la sesión
-        Optional<SessionDTO> existingSession = chatSessionService.getSessionById(chatSessionId);
-        if (existingSession.isPresent()) {
-            return existingSession.get();
+        if (chatSessionId != null && chatSessionId > 0) {
+            Optional<SessionDTO> existingSession = chatSessionService.getSessionById(chatSessionId);
+            if (existingSession.isPresent()) {
+                return existingSession.get();
+            }
         }
         
         // Verificar si el agente existe
-        Optional<AgentDTO> agentOpt = agentService.getAgentById(agentId);
+        Optional<AgentDTO> agentOpt = aiServiceManager.getAgentDtoById(agentId);
         if (agentOpt.isEmpty()) {
             throw new IllegalArgumentException("Agente no encontrado: " + agentId);
         }

@@ -1,30 +1,37 @@
 package com.ai.avance.services.AiService;
 
-import com.ai.avance.data.entities.ConversationEntity.ChatSessionEntity;
-import com.ai.avance.data.entities.ConversationEntity.MessageEntity;
+import com.ai.avance.data.entities.AIEntities.AgentEntity;
+import com.ai.avance.data.entities.ConversationEntities.ChatSessionEntity;
+import com.ai.avance.data.entities.ConversationEntities.MessageEntity;
+import com.ai.avance.data.entities.UserEntities.UserEntity;
 import com.ai.avance.data.mappers.ChatMapper;
+import com.ai.avance.data.repositories.AgentRepository;
 import com.ai.avance.data.repositories.ChatRepository;
-import com.ai.avance.presentation.dto.ChatDTO.AgentDTO;
+import com.ai.avance.data.repositories.UserRepository;
 import com.ai.avance.presentation.dto.ChatDTO.MessageDTO;
 import com.ai.avance.presentation.dto.ChatDTO.SessionDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Servicio para gestionar las sesiones de chat.
+ * Integra con el repositorio de entidades y proporciona DTOs para la capa de presentación.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ChatSessionService {
 
-    private final AgentService agentService;
+    private final AgentRepository agentRepository;
+    private final UserRepository userRepository;
     private final ChatRepository chatRepository;
 
     /**
@@ -32,36 +39,43 @@ public class ChatSessionService {
      *
      * @param userId ID del usuario que crea la sesión
      * @param agentId ID del agente con el que se establece la sesión
-     * @return la sesión de chat creada o null si el agente no existe
+     * @return la sesión de chat creada o null si el agente o usuario no existe
      */
+    @Transactional
     public SessionDTO createSession(Long userId, Long agentId) {
-        Optional<AgentDTO> agentOpt = agentService.getAgentById(agentId);
+        Optional<AgentEntity> agentOpt = agentRepository.findById(agentId);
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
         
         if (agentOpt.isEmpty()) {
             log.error("No se puede crear sesión con agente inexistente: {}", agentId);
             return null;
         }
         
-        AgentDTO agent = agentOpt.get();
+        if (userOpt.isEmpty()) {
+            log.error("No se puede crear sesión para usuario inexistente: {}", userId);
+            return null;
+        }
         
-        SessionDTO session = SessionDTO.builder()
-                .userId(userId)
-                .agentId(agentId)
-                .title("Conversación con " + agent.getName())
-                .createdAt(LocalDateTime.now())
-                .lastActivity(LocalDateTime.now())
-                .active(true)
-                .build();
+        AgentEntity agent = agentOpt.get();
         
-        // Convertir DTO a entidad y guardar en el repositorio
-        ChatSessionEntity sessionEntity = ChatMapper.toSessionEntity(session);
-        sessionEntity = chatRepository.saveSession(sessionEntity);
+        // Crear entidad de sesión
+        ChatSessionEntity sessionEntity = new ChatSessionEntity();
+        sessionEntity.setUser(userOpt.get());
+        sessionEntity.setAgent(agent);
+        sessionEntity.setTitle("Conversación con " + agent.getName());
+        sessionEntity.setCreatedAt(LocalDateTime.now());
+        sessionEntity.setLastActivity(LocalDateTime.now());
+        sessionEntity.setActive(true);
+        sessionEntity.setMessages(new ArrayList<>());
         
-        // Convertir entidad a DTO para devolver
-        SessionDTO savedSession = ChatMapper.toSessionDTO(sessionEntity);
-        log.info("Sesión creada: {}", savedSession.getId());
+        // Guardar en el repositorio
+        ChatSessionEntity savedEntity = chatRepository.saveSession(sessionEntity);
         
-        return savedSession;
+        // Convertir a DTO y devolver
+        SessionDTO sessionDTO = ChatMapper.toSessionDTO(savedEntity);
+        log.info("Sesión creada: {}", sessionDTO.getId());
+        
+        return sessionDTO;
     }
 
     /**
@@ -82,6 +96,13 @@ public class ChatSessionService {
      * @return lista de sesiones del usuario
      */
     public List<SessionDTO> getUserSessions(Long userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        
+        if (userOpt.isEmpty()) {
+            log.error("No se encontró el usuario con ID: {}", userId);
+            return List.of();
+        }
+        
         return chatRepository.findSessionsByUserId(userId)
                 .stream()
                 .map(ChatMapper::toSessionDTO)
@@ -92,10 +113,11 @@ public class ChatSessionService {
      * Añade un mensaje a una sesión existente.
      *
      * @param sessionId ID de la sesión
-     * @param message mensaje a añadir
+     * @param messageDTO mensaje a añadir
      * @return true si se añadió correctamente, false si la sesión no existe
      */
-    public boolean addMessageToSession(Long sessionId, MessageDTO message) {
+    @Transactional
+    public boolean addMessageToSession(Long sessionId, MessageDTO messageDTO) {
         Optional<ChatSessionEntity> sessionOpt = chatRepository.findSessionById(sessionId);
         
         if (sessionOpt.isEmpty()) {
@@ -104,10 +126,19 @@ public class ChatSessionService {
         }
         
         ChatSessionEntity session = sessionOpt.get();
-        MessageEntity messageEntity = ChatMapper.toMessageEntity(message);
+        
+        // Crear la entidad de mensaje y vincularla a la sesión
+        MessageEntity messageEntity = new MessageEntity();
+        messageEntity.setChatSession(session);
+        messageEntity.setContent(messageDTO.getContent());
+        messageEntity.setRole(messageDTO.getRole());
+        messageEntity.setTimestamp(LocalDateTime.now());
+        messageEntity.setModelUsed(messageDTO.getModelUsed());
+        
+        // Guardar el mensaje
         chatRepository.saveMessage(messageEntity);
         
-        // Actualizar la fecha de última actividad
+        // Actualizar la fecha de última actividad de la sesión
         session.setLastActivity(LocalDateTime.now());
         chatRepository.saveSession(session);
         
@@ -120,6 +151,7 @@ public class ChatSessionService {
      * @param sessionId ID de la sesión a eliminar
      * @return true si se eliminó correctamente, false si la sesión no existía
      */
+    @Transactional
     public boolean deleteSession(Long sessionId) {
         Optional<ChatSessionEntity> sessionOpt = chatRepository.findSessionById(sessionId);
         
@@ -128,6 +160,10 @@ public class ChatSessionService {
             return false;
         }
         
+        // Primero eliminar todos los mensajes de la sesión
+        chatRepository.deleteMessagesByChatSessionId(sessionId);
+        
+        // Luego eliminar la sesión
         chatRepository.deleteSessionById(sessionId);
         log.info("Sesión eliminada: {}", sessionId);
         return true;
@@ -138,6 +174,7 @@ public class ChatSessionService {
      *
      * @param sessionId ID de la sesión
      */
+    @Transactional
     public void updateSessionActivity(Long sessionId) {
         chatRepository.findSessionById(sessionId)
                 .ifPresent(session -> {
