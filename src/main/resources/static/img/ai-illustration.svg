@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6610f2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7952b3;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="#f8f9fa" />
+  <circle cx="300" cy="150" r="80" fill="url(#grad1)" />
+  <rect x="220" y="240" width="160" height="120" rx="10" fill="url(#grad1)" opacity="0.8" />
+  <line x1="150" y1="100" x2="220" y2="150" stroke="#6610f2" stroke-width="4" />
+  <line x1="150" y1="200" x2="220" y2="150" stroke="#6610f2" stroke-width="4" />
+  <line x1="450" y1="100" x2="380" y2="150" stroke="#6610f2" stroke-width="4" />
+  <line x1="450" y1="200" x2="380" y2="150" stroke="#6610f2" stroke-width="4" />
+  <circle cx="150" cy="100" r="10" fill="#6610f2" />
+  <circle cx="150" cy="200" r="10" fill="#6610f2" />
+  <circle cx="450" cy="100" r="10" fill="#6610f2" />
+  <circle cx="450" cy="200" r="10" fill="#6610f2" />
+  <circle cx="300" cy="150" r="30" fill="white" />
+  <text x="230" y="300" font-family="Arial" font-size="24" fill="white">Avance AI</text>
+  <circle cx="260" cy="150" r="10" fill="white" />
+  <circle cx="340" cy="150" r="10" fill="white" />
+  <path d="M280,170 Q300,190 320,170" stroke="white" stroke-width="3" fill="none" />
+</svg> 
