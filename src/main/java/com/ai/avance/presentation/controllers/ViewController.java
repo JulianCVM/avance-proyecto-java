@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpSession;
@@ -26,50 +24,6 @@ public class ViewController {
     // Aquí se inyectarían otros servicios necesarios
 
     /**
-     * Página de inicio que redirige a la lista de agentes.
-     */
-    @GetMapping("/")
-    public String index() {
-        return "redirect:/agents";
-    }
-
-    /* Comentado para resolver conflicto con AgentConfigController
-    @GetMapping("/agents")
-    public String listAgents(Model model, @RequestParam(required = false) Long userId) {
-        // En un sistema real, obtendríamos el userId de la sesión o autenticación
-        Long userIdToUse = userId != null ? userId : 1L; // Usuario demo por defecto
-        
-        List<AgentDTO> agents = aiServiceManager.getUserAgents(userIdToUse);
-        model.addAttribute("agents", agents);
-        return "agent-list";
-    }
-    */
-
-    /* Comentado para resolver conflicto con AgentConfigController
-    @GetMapping("/agents/new")
-    public String newAgentForm(Model model) {
-        model.addAttribute("agent", new AgentDTO());
-        model.addAttribute("isNew", true);
-        return "agent-config";
-    }
-    */
-
-    /* Comentado para resolver conflicto con AgentConfigController
-    @GetMapping("/agents/edit/{agentId}")
-    public String editAgentForm(@PathVariable Long agentId, Model model) {
-        Optional<AgentDTO> agentOpt = aiServiceManager.getAgentById(agentId);
-        
-        if (agentOpt.isPresent()) {
-            model.addAttribute("agent", agentOpt.get());
-            model.addAttribute("isNew", false);
-            return "agent-config";
-        } else {
-            return "redirect:/agents";
-        }
-    }
-    */
-
-    /**
      * Página de chat con un agente específico.
      */
     @GetMapping("/chat")
@@ -83,7 +37,7 @@ public class ViewController {
         
         // Si no se especifica un agente, usar el predeterminado o el primero disponible
         if (agentId == null) {
-            List<AgentDTO> userAgents = aiServiceManager.getUserAgents(userId);
+            List<AgentDTO> userAgents = aiServiceManager.getUserAgentDtos(userId);
             
             if (!userAgents.isEmpty()) {
                 agentId = userAgents.get(0).getId();
@@ -94,9 +48,12 @@ public class ViewController {
             }
         } else {
             // Obtener el nombre del agente para mostrarlo en la interfaz
-            Optional<AgentDTO> agentOpt = aiServiceManager.getAgentById(agentId);
+            Optional<AgentDTO> agentOpt = aiServiceManager.getAgentDtoById(agentId);
             if (agentOpt.isPresent()) {
                 session.setAttribute("agentName", agentOpt.get().getName());
+            } else {
+                // Si el agente no existe, redirigir a la lista de agentes
+                return "redirect:/agents";
             }
         }
         
@@ -104,12 +61,14 @@ public class ViewController {
         // o crearíamos una nueva si no existe
         if (chatSessionId == null) {
             chatSessionId = System.currentTimeMillis(); // Simulación simplificada
+            // Aquí llamaríamos a un servicio para crear una nueva sesión
         }
         
         // Agregar datos necesarios para la vista
         model.addAttribute("agentId", agentId);
         model.addAttribute("chatSessionId", chatSessionId);
-        model.addAttribute("userAgents", aiServiceManager.getUserAgents(userId));
+        model.addAttribute("userId", userId);
+        model.addAttribute("userAgents", aiServiceManager.getUserAgentDtos(userId));
         
         return "chat";
     }
@@ -120,6 +79,22 @@ public class ViewController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         // En un sistema real, cargamos estadísticas y métricas aquí
+        model.addAttribute("pageTitle", "Dashboard - Avance AI");
+        model.addAttribute("currentTime", LocalDateTime.now());
         return "dashboard";
+    }
+    
+    /**
+     * Página de configuraciones de usuario.
+     */
+    @GetMapping("/settings")
+    public String userSettings(Model model) {
+        // En un sistema real, obtendríamos la información del usuario actual
+        Long userId = 1L; // Usuario demo por defecto
+        
+        model.addAttribute("pageTitle", "Configuración - Avance AI");
+        model.addAttribute("userId", userId);
+        // Aquí cargaríamos la información del usuario y otras configuraciones
+        return "settings";
     }
 } 
