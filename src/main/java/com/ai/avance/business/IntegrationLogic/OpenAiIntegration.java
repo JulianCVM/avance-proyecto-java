@@ -1,7 +1,7 @@
 package com.ai.avance.business.IntegrationLogic;
 
 import com.ai.avance.data.entities.AIEntities.AgentEntity;
-import com.ai.avance.data.entities.ConversationEntity.MessageEntity;
+import com.ai.avance.data.entities.ConversationEntities.MessageEntity;
 
 import java.util.List;
 
