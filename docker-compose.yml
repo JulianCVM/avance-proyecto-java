@@ -14,10 +14,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: admin
     restart: always
     networks:
       - avance-network
-    command: ["bash", "-c", "java -jar app.jar"]
+    command: ["bash", "-c", "java -jar app.jar --spring.profiles.active=docker"]
 
   mysql:
     image: mysql:8.0

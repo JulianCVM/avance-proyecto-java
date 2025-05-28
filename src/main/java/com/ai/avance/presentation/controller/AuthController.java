@@ -2,8 +2,13 @@ package com.ai.avance.presentation.controller;
 
 import com.ai.avance.data.entities.UserEntities.UserEntity;
 import com.ai.avance.presentation.dto.UserDTO;
+import com.ai.avance.security.JwtTokenProvider;
 import com.ai.avance.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +29,8 @@ public class AuthController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider tokenProvider;
 
     /**
      * Página de inicio de sesión.
@@ -41,22 +48,29 @@ public class AuthController {
     public String processLogin(@ModelAttribute("user") UserDTO userDTO, 
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
-        
-        UserEntity user = userService.findByUsername(userDTO.getUsername());
-        
-        if (user == null || !passwordEncoder.matches(userDTO.getPassword(), user.getPassword())) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    userDTO.getUsername(),
+                    userDTO.getPassword()
+                )
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+            
+            UserEntity user = userService.findByUsername(userDTO.getUsername());
+            user.setLastLogin(LocalDateTime.now());
+            userService.save(user);
+            
+            session.setAttribute("user", user);
+            session.setAttribute("token", jwt);
+            
+            return "redirect:/";
+        } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Usuario o contraseña incorrectos");
             return "redirect:/login";
         }
-        
-        // Actualizar última conexión
-        user.setLastLogin(LocalDateTime.now());
-        userService.save(user);
-        
-        // Guardar usuario en sesión
-        session.setAttribute("user", user);
-        
-        return "redirect:/";
     }
 
     /**
@@ -74,33 +88,35 @@ public class AuthController {
     @PostMapping("/register")
     public String processRegistration(@ModelAttribute("user") UserDTO userDTO,
                                     RedirectAttributes redirectAttributes) {
-        
-        // Verificar si el usuario ya existe
-        if (userService.findByUsername(userDTO.getUsername()) != null) {
-            redirectAttributes.addFlashAttribute("error", "El nombre de usuario ya está en uso");
+        try {
+            if (userService.findByUsername(userDTO.getUsername()) != null) {
+                redirectAttributes.addFlashAttribute("error", "El nombre de usuario ya está en uso");
+                return "redirect:/register";
+            }
+            
+            if (userService.findByEmail(userDTO.getEmail()) != null) {
+                redirectAttributes.addFlashAttribute("error", "El correo electrónico ya está registrado");
+                return "redirect:/register";
+            }
+            
+            UserEntity newUser = new UserEntity();
+            newUser.setUsername(userDTO.getUsername());
+            newUser.setEmail(userDTO.getEmail());
+            newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            newUser.setFirstName(userDTO.getFirstName());
+            newUser.setLastName(userDTO.getLastName());
+            newUser.setActive(true);
+            newUser.setCreatedAt(LocalDateTime.now());
+            newUser.getRoles().add("ROLE_USER");
+            
+            userService.save(newUser);
+            
+            redirectAttributes.addFlashAttribute("success", "Registro exitoso. Por favor, inicia sesión.");
+            return "redirect:/login";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al registrar usuario: " + e.getMessage());
             return "redirect:/register";
         }
-        
-        if (userService.findByEmail(userDTO.getEmail()) != null) {
-            redirectAttributes.addFlashAttribute("error", "El correo electrónico ya está registrado");
-            return "redirect:/register";
-        }
-        
-        // Crear y guardar nuevo usuario
-        UserEntity newUser = new UserEntity();
-        newUser.setUsername(userDTO.getUsername());
-        newUser.setEmail(userDTO.getEmail());
-        newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        newUser.setFirstName(userDTO.getFirstName());
-        newUser.setLastName(userDTO.getLastName());
-        newUser.setActive(true);
-        newUser.setCreatedAt(LocalDateTime.now());
-        newUser.getRoles().add("ROLE_USER");
-        
-        userService.save(newUser);
-        
-        redirectAttributes.addFlashAttribute("success", "Registro exitoso. Por favor, inicia sesión.");
-        return "redirect:/login";
     }
 
     /**
@@ -109,6 +125,7 @@ public class AuthController {
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();
+        SecurityContextHolder.clearContext();
         return "redirect:/";
     }
 } 

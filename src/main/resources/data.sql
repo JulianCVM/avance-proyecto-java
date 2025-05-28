@@ -12,23 +12,18 @@ SELECT 'Asistente AVANCE',
 FROM dual
 WHERE NOT EXISTS (SELECT 1 FROM default_agent WHERE active = 1);
 
--- Ejemplo de usuario administrador (la contraseña es "admin" encriptada con BCrypt)
--- Solo se ejecutará si la tabla está vacía
+-- Crear usuario admin si no existe
 INSERT INTO users (username, email, password, first_name, last_name, active, created_at)
-SELECT 'admin', 
-       'admin@avance.com', 
-       '$2a$10$rAfu6lzEGJskRHkSCYJl0.K1NxKDojIxnqL4KjUMukcBH3fikFVa2', 
-       'Admin', 
-       'Usuario', 
-       1, 
-       NOW()
-FROM dual
+SELECT 'admin', 'admin@avance.com', 'admin', 'Admin', 'Usuario', 1, NOW()
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
 
--- Agregar rol de administrador
--- Solo se ejecutará si no existe ya el rol para el usuario
+-- Asignar rol de admin
 INSERT INTO user_roles (user_id, role)
 SELECT id, 'ROLE_ADMIN'
 FROM users
 WHERE username = 'admin'
-AND NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = (SELECT id FROM users WHERE username = 'admin') AND role = 'ROLE_ADMIN'); 
+AND NOT EXISTS (
+    SELECT 1 FROM user_roles ur 
+    WHERE ur.user_id = users.id 
+    AND ur.role = 'ROLE_ADMIN'
+); 
