@@ -152,54 +152,8 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <i class="bi bi-cpu me-2"></i>
-                <span>Avance AI</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-house-door me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/agents"><i class="bi bi-robot me-1"></i> Agentes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/chatbot"><i class="bi bi-chat-dots me-1"></i> Chatbot</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/api-keys"><i class="bi bi-key me-1"></i> API Keys</a>
-                    </li>
-                </ul>
-                <!-- Área de usuario (Cambia según estado de autenticación) -->
-                <div th:if="${session.user != null}" class="user-profile">
-                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
-                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
-                            Usuario
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                            <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear me-2"></i> Configuración</a></li>
-                            <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i> API Keys</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div th:unless="${session.user != null}" class="d-flex">
-                    <a href="/login" class="btn btn-outline-light me-2"><i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión</a>
-                    <a href="/register" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Registrarse</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- Incluir el fragmento de navegación -->
+    <div th:replace="~{fragments/navbar :: navbar(activeTab='agents')}"></div>
 
     <section class="hero">
         <div class="container text-center">

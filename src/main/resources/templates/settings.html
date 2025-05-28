@@ -68,51 +68,8 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">Avance AI</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/agents">Agentes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/chatbot">Chatbot</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/api-keys">API Keys</a>
-                    </li>
-                </ul>
-                <!-- Área de usuario (Cambia según estado de autenticación) -->
-                <div th:if="${session.user != null}" class="user-profile">
-                    <div class="user-avatar" th:text="${#strings.substring(session.user.firstName, 0, 1)}">U</div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false"
-                                th:text="${session.user.firstName + ' ' + session.user.lastName}">
-                            Usuario
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                            <li><a class="dropdown-item" href="/dashboard">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/settings">Configuración</a></li>
-                            <li><a class="dropdown-item" href="/api-keys">API Keys</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout">Cerrar sesión</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div th:unless="${session.user != null}" class="d-flex">
-                    <a href="/login" class="btn btn-outline-light me-2">Iniciar sesión</a>
-                    <a href="/register" class="btn btn-primary">Registrarse</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- Incluir el fragmento de navegación -->
+    <div th:replace="~{fragments/navbar :: navbar(activeTab='settings')}"></div>
 
     <section class="hero">
         <div class="container">
