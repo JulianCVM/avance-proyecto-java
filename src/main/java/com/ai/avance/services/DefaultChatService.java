@@ -23,6 +23,7 @@ public class DefaultChatService {
 
     private final DefaultChatSessionRepository defaultChatSessionRepository;
     private final DefaultMessageRepository defaultMessageRepository;
+    private final GeminiService geminiService;
     
     /**
      * Crea una nueva sesión de chat por defecto.
@@ -153,19 +154,35 @@ public class DefaultChatService {
         session.setLastActivity(LocalDateTime.now());
         saveSession(session);
         
-        // Simular respuesta del chatbot
-        // En un entorno real, llamaríamos a la API de Gemini aquí
-        String botResponse = "Soy el asistente por defecto de Avance AI. " +
-            "Estoy aquí para ayudarte. Me has preguntado: " + message;
-        
-        // Guardar la respuesta del bot
-        DefaultMessageEntity botMessage = new DefaultMessageEntity();
-        botMessage.setChatSession(session);
-        botMessage.setRole("assistant");
-        botMessage.setContent(botResponse);
-        botMessage.setTimestamp(LocalDateTime.now());
-        saveMessage(botMessage);
-        
-        return botResponse;
+        try {
+            // Obtener respuesta del modelo Gemini
+            String botResponse = geminiService.generateResponse(message);
+            
+            // Guardar la respuesta del bot
+            DefaultMessageEntity botMessage = new DefaultMessageEntity();
+            botMessage.setChatSession(session);
+            botMessage.setRole("assistant");
+            botMessage.setContent(botResponse);
+            botMessage.setTimestamp(LocalDateTime.now());
+            saveMessage(botMessage);
+            
+            return botResponse;
+        } catch (Exception e) {
+            // En caso de error, registrar y devolver un mensaje predeterminado
+            System.err.println("Error al procesar mensaje con Gemini: " + e.getMessage());
+            e.printStackTrace();
+            
+            String fallbackResponse = "Lo siento, en este momento no puedo procesar tu solicitud. Por favor, intenta de nuevo más tarde.";
+            
+            // Guardar la respuesta de fallback
+            DefaultMessageEntity botMessage = new DefaultMessageEntity();
+            botMessage.setChatSession(session);
+            botMessage.setRole("assistant");
+            botMessage.setContent(fallbackResponse);
+            botMessage.setTimestamp(LocalDateTime.now());
+            saveMessage(botMessage);
+            
+            return fallbackResponse;
+        }
     }
 } 

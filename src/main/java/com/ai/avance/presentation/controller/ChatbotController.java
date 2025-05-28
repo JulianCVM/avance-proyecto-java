@@ -36,9 +36,9 @@ public class ChatbotController {
      */
     @PostMapping("/send")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> sendMessage(@RequestBody Map<String, String> request) {
-        String message = request.get("message");
-        String sessionId = request.get("sessionId");
+    public ResponseEntity<Map<String, Object>> sendMessage(@RequestBody Map<String, Object> request) {
+        String message = (String) request.get("message");
+        String sessionId = (String) request.get("sessionId");
         
         // Si no hay sessionId, crear uno nuevo
         if (sessionId == null || sessionId.isEmpty()) {
@@ -53,6 +53,7 @@ public class ChatbotController {
         responseMap.put("response", response);
         responseMap.put("sessionId", sessionId);
         responseMap.put("timestamp", LocalDateTime.now().toString());
+        responseMap.put("model", "gemini-2.0-flash");
         
         return ResponseEntity.ok(responseMap);
     }
