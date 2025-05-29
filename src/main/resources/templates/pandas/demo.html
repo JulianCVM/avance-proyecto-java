@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Demostración de Pandas</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card {
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .dashboard-card {
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .code-container {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .sample-data {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .gallery-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Avance AI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/pandas">Pandas Demo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pandas/visualize">Visualizaciones</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="display-5 mb-4">
+                    <i class="fas fa-chart-bar text-primary me-2"></i>
+                    Demostración de Pandas
+                </h1>
+                <p class="lead" th:text="${description}">Explora las capacidades de análisis de datos con Pandas.</p>
+                <hr/>
+            </div>
+        </div>
+
+        <!-- Tarjetas de acciones -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Generar Datos de Ejemplo</h5>
+                        <p class="card-text">Crea datos sintéticos para demostrar las capacidades de Pandas.</p>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">Sesiones</span>
+                                <input type="number" id="numSessions" class="form-control" value="50" min="10" max="500">
+                            </div>
+                        </div>
+                        <button id="generateDataBtn" class="btn btn-primary">
+                            <i class="fas fa-magic"></i> Generar Datos
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-upload fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Cargar CSV Propio</h5>
+                        <p class="card-text">Sube tu propio archivo CSV para analizarlo con Pandas.</p>
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <select id="dataType" class="form-select mb-2">
+                                    <option value="mensajes">Datos de mensajes</option>
+                                    <option value="sesiones">Datos de sesiones</option>
+                                </select>
+                                <input type="file" id="csvFile" class="form-control" accept=".csv">
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search"></i> Analizar Datos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">Ver Visualizaciones</h5>
+                        <p class="card-text">Explora gráficos y visualizaciones de los datos analizados.</p>
+                        <a href="/pandas/visualize" class="btn btn-info">
+                            <i class="fas fa-eye"></i> Ver Visualizaciones
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados y resumen -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            Resumen de Datos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Cargando -->
+                        <div id="loadingIndicator" class="text-center" style="display: none;">
+                            <div class="loader"></div>
+                            <p>Procesando datos...</p>
+                        </div>
+                        
+                        <!-- Sin datos -->
+                        <div id="noDataMessage" th:if="${summary == null || summary.isEmpty()}">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No hay datos analizados disponibles. Genera datos de ejemplo o sube un archivo CSV para comenzar.
+                            </div>
+                        </div>
+                        
+                        <!-- Con datos -->
+                        <div id="dataSummary" th:if="${summary != null && !summary.isEmpty()}" th:style="${summary != null && !summary.isEmpty()} ? 'display:block' : 'display:none'">
+                            <ul class="nav nav-tabs" id="dataTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                                        Resumen
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="sample-tab" data-bs-toggle="tab" data-bs-target="#sample" type="button" role="tab">
+                                        Muestra
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab">
+                                        Estadísticas
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content p-3 border border-top-0 rounded-bottom">
+                                <!-- Tab Resumen -->
+                                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h6 class="card-title text-muted">Filas</h6>
+                                                    <div class="stats-number" id="rowCount">
+                                                        <span th:if="${summary != null && summary.shape != null}" th:text="${summary.shape[0]}">0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h6 class="card-title text-muted">Columnas</h6>
+                                                    <div class="stats-number" id="columnCount">
+                                                        <span th:if="${summary != null && summary.shape != null}" th:text="${summary.shape[1]}">0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h6 class="card-title text-muted">Valores Nulos</h6>
+                                                    <div class="stats-number" id="nullCount">
+                                                        <span th:if="${summary != null && summary.null_counts != null}" th:text="${summary.null_counts.values().stream().mapToInt(v -> v instanceof Number ? ((Number)v).intValue() : 0).sum()}">0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6>Columnas disponibles:</h6>
+                                        <div class="code-container" id="columnsDisplay">
+                                            <span th:if="${summary != null && summary.columns != null}" th:text="${summary.columns}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tab Muestra -->
+                                <div class="tab-pane fade" id="sample" role="tabpanel">
+                                    <div class="sample-data">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-striped table-hover" id="sampleTable">
+                                                <thead id="sampleHeader">
+                                                    <tr th:if="${summary != null && summary.columns != null}">
+                                                        <th th:each="column : ${summary.columns}" th:text="${column}"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="sampleBody">
+                                                    <tr th:if="${summary != null && summary.sample_rows != null}" th:each="row : ${summary.sample_rows}">
+                                                        <td th:each="column : ${summary.columns}" th:text="${row[column]}"></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tab Estadísticas -->
+                                <div class="tab-pane fade" id="stats" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover" id="statsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Estadística</th>
+                                                    <th th:if="${summary != null && summary.summary != null}" 
+                                                        th:each="column : ${summary.summary.keySet()}" 
+                                                        th:text="${column}"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:if="${summary != null && summary.summary != null}" th:each="stat : ${T(java.util.Arrays).asList('count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max')}">
+                                                    <td th:text="${stat}"></td>
+                                                    <td th:each="column : ${summary.summary.keySet()}" th:text="${summary.summary[column][stat]}"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados del último procesamiento -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-code me-2"></i>
+                            Salida del Script Python
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="scriptOutput" class="code-container">
+                            <em>La salida del script aparecerá aquí después de procesar los datos.</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white mt-5 py-3">
+        <div class="container text-center">
+            <p class="mb-0">Avance AI - Herramienta de demostración de Pandas &copy; 2023</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap & jQuery Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Generar datos de prueba
+            $('#generateDataBtn').click(function() {
+                const numSessions = $('#numSessions').val();
+                
+                // Mostrar cargando
+                $('#loadingIndicator').show();
+                $('#dataSummary').hide();
+                $('#noDataMessage').hide();
+                $('#scriptOutput').html('<em>Generando datos...</em>');
+                
+                // Solicitud AJAX
+                $.ajax({
+                    url: '/pandas/generate',
+                    type: 'POST',
+                    data: { numSessions: numSessions },
+                    success: function(response) {
+                        $('#loadingIndicator').hide();
+                        
+                        if (response.status === 'success') {
+                            // Mostrar salida del script
+                            $('#scriptOutput').html('<pre>' + response.scriptOutput + '</pre>');
+                            
+                            // Obtener resumen actualizado
+                            refreshSummary();
+                        } else {
+                            $('#scriptOutput').html('<div class="alert alert-danger">Error: ' + response.errorMessage + '</div>');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loadingIndicator').hide();
+                        $('#scriptOutput').html('<div class="alert alert-danger">Error en la solicitud: ' + xhr.statusText + '</div>');
+                    }
+                });
+            });
+            
+            // Subir y analizar archivo CSV
+            $('#uploadForm').submit(function(event) {
+                event.preventDefault();
+                
+                const fileInput = $('#csvFile')[0];
+                const dataType = $('#dataType').val();
+                
+                if (fileInput.files.length === 0) {
+                    alert('Por favor, selecciona un archivo CSV.');
+                    return;
+                }
+                
+                // Crear FormData
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                formData.append('dataType', dataType);
+                
+                // Mostrar cargando
+                $('#loadingIndicator').show();
+                $('#dataSummary').hide();
+                $('#noDataMessage').hide();
+                $('#scriptOutput').html('<em>Analizando datos...</em>');
+                
+                // Solicitud AJAX
+                $.ajax({
+                    url: '/pandas/analyze',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#loadingIndicator').hide();
+                        
+                        if (response.status === 'success') {
+                            // Mostrar salida del script
+                            $('#scriptOutput').html('<pre>' + response.scriptOutput + '</pre>');
+                            
+                            // Obtener resumen actualizado
+                            refreshSummary();
+                        } else {
+                            $('#scriptOutput').html('<div class="alert alert-danger">Error: ' + response.errorMessage + '</div>');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loadingIndicator').hide();
+                        $('#scriptOutput').html('<div class="alert alert-danger">Error en la solicitud: ' + xhr.statusText + '</div>');
+                    }
+                });
+            });
+            
+            // Función para actualizar el resumen
+            function refreshSummary() {
+                $.ajax({
+                    url: '/pandas/summary',
+                    type: 'GET',
+                    success: function(summary) {
+                        if (summary && Object.keys(summary).length > 0) {
+                            updateSummaryUI(summary);
+                            $('#dataSummary').show();
+                            $('#noDataMessage').hide();
+                        } else {
+                            $('#dataSummary').hide();
+                            $('#noDataMessage').show();
+                        }
+                    }
+                });
+            }
+            
+            // Actualizar UI con el resumen
+            function updateSummaryUI(summary) {
+                // Actualizar contador de filas y columnas
+                if (summary.shape) {
+                    $('#rowCount').text(summary.shape[0]);
+                    $('#columnCount').text(summary.shape[1]);
+                }
+                
+                // Actualizar contador de valores nulos
+                if (summary.null_counts) {
+                    const nullSum = Object.values(summary.null_counts).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+                    $('#nullCount').text(nullSum);
+                }
+                
+                // Actualizar lista de columnas
+                if (summary.columns) {
+                    $('#columnsDisplay').text(JSON.stringify(summary.columns, null, 2));
+                }
+                
+                // Actualizar tabla de muestra
+                if (summary.columns && summary.sample_rows) {
+                    const headerHtml = '<tr>' + summary.columns.map(col => `<th>${col}</th>`).join('') + '</tr>';
+                    $('#sampleHeader').html(headerHtml);
+                    
+                    let bodyHtml = '';
+                    summary.sample_rows.forEach(row => {
+                        bodyHtml += '<tr>';
+                        summary.columns.forEach(col => {
+                            bodyHtml += `<td>${row[col] !== null ? row[col] : ''}</td>`;
+                        });
+                        bodyHtml += '</tr>';
+                    });
+                    $('#sampleBody').html(bodyHtml);
+                }
+                
+                // Actualizar tabla de estadísticas
+                if (summary.summary) {
+                    const stats = ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'];
+                    const columns = Object.keys(summary.summary);
+                    
+                    // Cabecera
+                    let headerHtml = '<tr><th>Estadística</th>';
+                    columns.forEach(col => {
+                        headerHtml += `<th>${col}</th>`;
+                    });
+                    headerHtml += '</tr>';
+                    
+                    // Filas
+                    let bodyHtml = '';
+                    stats.forEach(stat => {
+                        bodyHtml += `<tr><td>${stat}</td>`;
+                        columns.forEach(col => {
+                            const value = summary.summary[col][stat];
+                            bodyHtml += `<td>${value !== undefined ? value : ''}</td>`;
+                        });
+                        bodyHtml += '</tr>';
+                    });
+                    
+                    $('#statsTable thead').html(headerHtml);
+                    $('#statsTable tbody').html(bodyHtml);
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

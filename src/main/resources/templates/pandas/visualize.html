@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Visualización de Datos con Pandas</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card {
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .visualization-card {
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        .visualization-card:hover {
+            transform: translateY(-5px);
+        }
+        .visualization-image {
+            max-width: 100%;
+            height: auto;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: opacity 0.3s ease;
+        }
+        .visualization-image:hover {
+            opacity: 0.9;
+        }
+        .modal-image {
+            max-width: 100%;
+            height: auto;
+        }
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 0;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Avance AI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pandas">Pandas Demo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/pandas/visualize">Visualizaciones</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="display-5 mb-4">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Visualización de Datos con Pandas
+                </h1>
+                <p class="lead" th:text="${description}">Visualizaciones generadas por análisis de Pandas.</p>
+                <hr/>
+            </div>
+        </div>
+
+        <!-- Resumen de datos -->
+        <div class="row mb-4" th:if="${summary != null && !summary.isEmpty()}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            Resumen del Dataset
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-muted">Filas</h6>
+                                        <div class="stats-number">
+                                            <span th:if="${summary != null && summary.shape != null}" th:text="${summary.shape[0]}">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-muted">Columnas</h6>
+                                        <div class="stats-number">
+                                            <span th:if="${summary != null && summary.shape != null}" th:text="${summary.shape[1]}">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-muted">Valores Nulos</h6>
+                                        <div class="stats-number">
+                                            <span th:if="${summary != null && summary.null_counts != null}" th:text="${summary.null_counts.values().stream().mapToInt(v -> v instanceof Number ? ((Number)v).intValue() : 0).sum()}">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button id="showSampleBtn" class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#sampleData">
+                                <i class="fas fa-table me-2"></i>
+                                Mostrar/Ocultar Muestra de Datos
+                            </button>
+                            <div class="collapse mt-3" id="sampleData">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped table-hover">
+                                        <thead>
+                                            <tr th:if="${summary != null && summary.columns != null}">
+                                                <th th:each="column : ${summary.columns}" th:text="${column}"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:if="${summary != null && summary.sample_rows != null}" th:each="row : ${summary.sample_rows}">
+                                                <td th:each="column : ${summary.columns}" th:text="${row[column]}"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin visualizaciones -->
+        <div class="row" th:if="${summary == null || summary.isEmpty()}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body empty-state">
+                        <i class="fas fa-chart-pie"></i>
+                        <h3>No hay visualizaciones disponibles</h3>
+                        <p class="text-muted mb-4">Aún no se han generado visualizaciones. Regresa a la página de demostración para generar o analizar datos.</p>
+                        <a href="/pandas" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Volver a la Demo de Pandas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Galería de visualizaciones -->
+        <div class="row" th:if="${summary != null && !summary.isEmpty()}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Visualizaciones Generadas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="visualizationGallery">
+                            <!-- Mensaje de carga -->
+                            <div class="col-12 text-center py-5" id="loadingVisualizations">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2">Cargando visualizaciones...</p>
+                            </div>
+                            
+                            <!-- Mensaje si no se encuentran visualizaciones -->
+                            <div class="col-12 text-center py-5" id="noVisualizations" style="display: none;">
+                                <i class="fas fa-exclamation-circle fa-3x text-muted mb-3"></i>
+                                <h4>No se encontraron imágenes</h4>
+                                <p class="text-muted">Las visualizaciones podrían no haberse generado correctamente.</p>
+                            </div>
+                            
+                            <!-- Aquí se cargarán las visualizaciones dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal para ver imagen ampliada -->
+        <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Visualización</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="" id="modalImage" class="modal-image" alt="Visualización">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white mt-5 py-3">
+        <div class="container text-center">
+            <p class="mb-0">Avance AI - Herramienta de demostración de Pandas &copy; 2023</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap & jQuery Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Buscar imágenes de visualizaciones si hay datos
+            if ($('#visualizationGallery').length > 0) {
+                loadVisualizations();
+            }
+            
+            // Función para cargar visualizaciones
+            function loadVisualizations() {
+                // Simulamos la búsqueda de imágenes en el directorio de resultados
+                // En una implementación real, esto debería ser un endpoint que devuelva la lista de imágenes
+                
+                // Las imágenes se mostrarían como tarjetas
+                setTimeout(function() {
+                    // Simular que se encontraron imágenes
+                    const visualizationTypes = [
+                        { name: 'Distribución de Mensajes por Rol', file: 'role_distribution.png' },
+                        { name: 'Distribución de Mensajes por Tema', file: 'topic_distribution.png' },
+                        { name: 'Actividad por Hora del Día', file: 'hour_activity.png' },
+                        { name: 'Longitud de Mensajes por Rol', file: 'message_length_by_role.png' },
+                        { name: 'Distribución de Duración de Sesiones', file: 'session_duration.png' },
+                        { name: 'Mensajes por Sesión', file: 'messages_per_session.png' },
+                        { name: 'Distribución de Sesiones por Tema', file: 'sessions_by_topic.png' },
+                        { name: 'Duración vs Mensajes', file: 'duration_vs_messages.png' }
+                    ];
+                    
+                    // Construir galería de imágenes
+                    let galleryHtml = '';
+                    visualizationTypes.forEach(function(viz) {
+                        galleryHtml += `
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card visualization-card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${viz.name}</h5>
+                                        <img src="/static/img/placeholder-chart.png" 
+                                             data-original="/results/${viz.file}" 
+                                             class="visualization-image img-fluid mt-2" 
+                                             alt="${viz.name}"
+                                             onclick="showImageModal(this, '${viz.name}')">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Actualizar la galería
+                    $('#loadingVisualizations').hide();
+                    if (galleryHtml === '') {
+                        $('#noVisualizations').show();
+                    } else {
+                        $('#visualizationGallery').append(galleryHtml);
+                    }
+                }, 1000);
+            }
+            
+            // Definir función global para mostrar imagen en modal
+            window.showImageModal = function(imgElement, title) {
+                const modalImg = $('#modalImage');
+                const modalTitle = $('#modalTitle');
+                
+                // Establecer título y src de la imagen
+                modalTitle.text(title);
+                
+                // Usar la imagen original si está disponible, de lo contrario usar el placeholder
+                const originalSrc = $(imgElement).data('original');
+                if (originalSrc && isImageAvailable(originalSrc)) {
+                    modalImg.attr('src', originalSrc);
+                } else {
+                    modalImg.attr('src', $(imgElement).attr('src'));
+                }
+                
+                // Mostrar modal
+                $('#imageModal').modal('show');
+            };
+            
+            // Función para verificar si una imagen está disponible
+            function isImageAvailable(url) {
+                // Esta función debería verificar si la imagen existe en el servidor
+                // Para simplificar, asumimos que no están disponibles las imágenes de /results/
+                return !url.startsWith('/results/');
+            }
+        });
+    </script>
+</body>
+</html> 
