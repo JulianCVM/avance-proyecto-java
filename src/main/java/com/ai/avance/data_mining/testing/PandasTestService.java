@@ -17,8 +17,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.io.FileNotFoundException;
 
 /**
  * Servicio para demostraciones y pruebas de Pandas.
@@ -41,99 +44,116 @@ public class PandasTestService {
      */
     public Map<String, Object> generateTestData(int numSessions) {
         Map<String, Object> results = new HashMap<>();
-        
         try {
-            // Asegurar que los directorios existan
-            dataGenerator.ensureDirectoriesExist();
-            
-            // Generar datos de mensajes
-            int[] messagesPerSession = {4, 20}; // Rango de mensajes por sesión
-            String messagesPath = dataGenerator.generateMessageData(numSessions, messagesPerSession);
-            results.put("messagesPath", messagesPath);
-            
+            // Generar script para crear datos de ejemplo
+            StringBuilder script = new StringBuilder();
+            script.append("import pandas as pd\n");
+            script.append("import numpy as np\n");
+            script.append("import random\n");
+            script.append("from datetime import datetime, timedelta\n");
+            script.append("import os\n\n");
+
+            // Configuración
+            script.append("# Configuración\n");
+            script.append("random.seed(42)\n");
+            script.append("np.random.seed(42)\n\n");
+
+            // Crear directorio para datos
+            script.append("# Crear directorio para datos\n");
+            script.append("raw_dir = './data/mining/raw'\n");
+            script.append("os.makedirs(raw_dir, exist_ok=True)\n\n");
+
             // Generar datos de sesiones
-            String sessionsPath = dataGenerator.generateSessionData(numSessions);
-            results.put("sessionsPath", sessionsPath);
-            
-            // Generar script de Python para análisis con Pandas
-            String scriptPath = dataGenerator.generatePandasDataGenerationScript(numSessions);
-            results.put("scriptPath", scriptPath);
-            
-            // Ejecutar el script para generar resumen básico
-            String scriptOutput = executePythonScript(scriptPath);
+            script.append("# Generar datos de sesiones\n");
+            script.append("session_data = []\n");
+            script.append("start_date = datetime.now() - timedelta(days=30)\n");
+            script.append("topics = ['General', 'Técnico', 'Soporte', 'Ventas', 'Otros']\n");
+            script.append("roles = ['Usuario', 'Asistente', 'Sistema']\n\n");
+
+            script.append("for i in range(").append(numSessions).append("):\n");
+            script.append("    created_at = start_date + timedelta(hours=random.randint(0, 720))\n");
+            script.append("    duration = random.randint(5, 120)\n");
+            script.append("    last_activity = created_at + timedelta(minutes=duration)\n");
+            script.append("    topic = random.choice(topics)\n");
+            script.append("    num_messages = random.randint(2, 20)\n\n");
+
+            script.append("    session_data.append({\n");
+            script.append("        'session_id': f'S{i+1:03d}',\n");
+            script.append("        'created_at': created_at,\n");
+            script.append("        'last_activity': last_activity,\n");
+            script.append("        'duration_minutes': duration,\n");
+            script.append("        'topic': topic,\n");
+            script.append("        'num_messages': num_messages\n");
+            script.append("    })\n\n");
+
+            script.append("sessions_df = pd.DataFrame(session_data)\n");
+            script.append("sessions_df.to_csv(os.path.join(raw_dir, 'sessions.csv'), index=False)\n\n");
+
+            // Generar datos de mensajes
+            script.append("# Generar datos de mensajes\n");
+            script.append("message_data = []\n");
+            script.append("message_templates = [\n");
+            script.append("    'Hola, ¿cómo estás?',\n");
+            script.append("    'Necesito ayuda con...',\n");
+            script.append("    'Gracias por tu respuesta',\n");
+            script.append("    '¿Podrías explicarme más sobre...?',\n");
+            script.append("    'Entiendo, gracias',\n");
+            script.append("    '¿Hay alguna otra opción?',\n");
+            script.append("    'Perfecto, eso resuelve mi duda',\n");
+            script.append("    '¿Cuánto tiempo tomará?',\n");
+            script.append("    '¿Podemos agendar una llamada?',\n");
+            script.append("    'Excelente servicio'\n");
+            script.append("]\n\n");
+
+            script.append("for session in session_data:\n");
+            script.append("    session_id = session['session_id']\n");
+            script.append("    start_time = session['created_at']\n");
+            script.append("    end_time = session['last_activity']\n");
+            script.append("    num_messages = session['num_messages']\n\n");
+
+            script.append("    for i in range(num_messages):\n");
+            script.append("        message_time = start_time + timedelta(minutes=random.randint(0, session['duration_minutes']))\n");
+            script.append("        role = roles[i % len(roles)]\n");
+            script.append("        content = random.choice(message_templates)\n\n");
+
+            script.append("        message_data.append({\n");
+            script.append("            'message_id': f'M{len(message_data)+1:04d}',\n");
+            script.append("            'session_id': session_id,\n");
+            script.append("            'timestamp': message_time,\n");
+            script.append("            'role': role,\n");
+            script.append("            'content': content,\n");
+            script.append("            'topic': session['topic']\n");
+            script.append("        })\n\n");
+
+            script.append("messages_df = pd.DataFrame(message_data)\n");
+            script.append("messages_df.to_csv(os.path.join(raw_dir, 'messages.csv'), index=False)\n\n");
+
+            // Imprimir resumen
+            script.append("# Imprimir resumen\n");
+            script.append("print('\\nResumen de datos generados:')\n");
+            script.append("print(f'Número de sesiones: {len(sessions_df)}')\n");
+            script.append("print(f'Número de mensajes: {len(messages_df)}')\n");
+            script.append("print('\\nDistribución de temas:')\n");
+            script.append("print(sessions_df['topic'].value_counts())\n");
+            script.append("print('\\nDistribución de roles:')\n");
+            script.append("print(messages_df['role'].value_counts())\n");
+
+            // Ejecutar script
+            String scriptOutput = executePythonScript(script.toString());
             results.put("scriptOutput", scriptOutput);
-            
-            // Verificar y analizar los archivos CSV generados por Pandas
-            String baseRawPath = dataMiningPaths.getRawDataPath();
-            
-            // Posibles ubicaciones para los archivos generados
-            String[] possibleSessionPaths = {
-                baseRawPath + "/pandas_generated_sessions.csv",
-                baseRawPath + "/../pandas_generated_sessions.csv",
-                baseRawPath + "/../raw/pandas_generated_sessions.csv"
-            };
-            
-            String[] possibleMessagePaths = {
-                baseRawPath + "/pandas_generated_messages.csv",
-                baseRawPath + "/../pandas_generated_messages.csv",
-                baseRawPath + "/../raw/pandas_generated_messages.csv"
-            };
-            
-            // Buscar el archivo de sesiones
-            File pandasSessionsFile = null;
-            String pandasSessionsPath = null;
-            
-            for (String path : possibleSessionPaths) {
-                File file = new File(path);
-                if (file.exists()) {
-                    pandasSessionsFile = file;
-                    pandasSessionsPath = path;
-                    break;
-                }
-            }
-            
-            // Buscar el archivo de mensajes
-            File pandasMessagesFile = null;
-            String pandasMessagesPath = null;
-            
-            for (String path : possibleMessagePaths) {
-                File file = new File(path);
-                if (file.exists()) {
-                    pandasMessagesFile = file;
-                    pandasMessagesPath = path;
-                    break;
-                }
-            }
-            
-            // Si existen los archivos generados por Pandas, analizarlos
-            if (pandasSessionsFile != null) {
-                log.info("Analizando archivo de sesiones generado por Pandas: {}", pandasSessionsPath);
-                String sessionAnalysisScript = generateAnalysisScript("sesiones", pandasSessionsPath);
-                String sessionAnalysisOutput = executePythonScript(sessionAnalysisScript);
-                results.put("sessionAnalysisOutput", sessionAnalysisOutput);
-            } else {
-                log.warn("No se encontró el archivo de sesiones generado por Pandas");
-            }
-            
-            if (pandasMessagesFile != null) {
-                log.info("Analizando archivo de mensajes generado por Pandas: {}", pandasMessagesPath);
-                String messageAnalysisScript = generateAnalysisScript("mensajes", pandasMessagesPath);
-                String messageAnalysisOutput = executePythonScript(messageAnalysisScript);
-                results.put("messageAnalysisOutput", messageAnalysisOutput);
-            } else {
-                log.warn("No se encontró el archivo de mensajes generado por Pandas");
-            }
-            
-            results.put("status", "success");
-            results.put("numSessions", numSessions);
-            results.put("timestamp", LocalDateTime.now().format(DATE_FORMATTER));
-            
+
+            // Analizar los archivos generados
+            String sessionsAnalysis = analyzeExistingFile("sessions.csv");
+            String messagesAnalysis = analyzeExistingFile("messages.csv");
+
+            results.put("sessionAnalysisOutput", sessionsAnalysis);
+            results.put("messageAnalysisOutput", messagesAnalysis);
+
         } catch (Exception e) {
-            log.error("Error al generar datos de prueba", e);
-            results.put("status", "error");
-            results.put("errorMessage", e.getMessage());
+            log.error("Error generando datos de prueba", e);
+            throw new RuntimeException("Error generando datos de prueba: " + e.getMessage(), e);
         }
-        
+
         return results;
     }
     
@@ -488,5 +508,139 @@ public class PandasTestService {
             log.error("Error al leer resumen de análisis", e);
             return new HashMap<>();
         }
+    }
+
+    /**
+     * Lista los archivos CSV disponibles en el directorio de datos
+     * @return lista de nombres de archivos CSV
+     */
+    public List<String> listCsvFiles() {
+        List<String> files = new ArrayList<>();
+        File rawDir = new File(dataMiningPaths.getRawDataPath());
+        
+        if (rawDir.exists() && rawDir.isDirectory()) {
+            File[] csvFiles = rawDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
+            if (csvFiles != null) {
+                for (File file : csvFiles) {
+                    files.add(file.getName());
+                }
+            }
+        }
+        
+        return files;
+    }
+
+    /**
+     * Analiza un archivo CSV existente
+     * @param filename nombre del archivo a analizar
+     * @return salida del script de análisis
+     */
+    public String analyzeExistingFile(String filename) {
+        try {
+            // Validar que el archivo existe
+            File csvFile = new File(dataMiningPaths.getRawDataPath(), filename);
+            if (!csvFile.exists()) {
+                throw new FileNotFoundException("El archivo " + filename + " no existe");
+            }
+
+            // Generar script de análisis
+            String script = generateAnalysisScript(csvFile.getAbsolutePath());
+            
+            // Ejecutar script
+            return executePythonScript(script);
+        } catch (Exception e) {
+            log.error("Error analizando archivo existente: " + filename, e);
+            throw new RuntimeException("Error analizando archivo: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Genera el script de Python para analizar un archivo CSV
+     * @param csvPath ruta al archivo CSV
+     * @return script de Python
+     */
+    private String generateAnalysisScript(String csvPath) {
+        StringBuilder script = new StringBuilder();
+        script.append("import pandas as pd\n");
+        script.append("import numpy as np\n");
+        script.append("import matplotlib.pyplot as plt\n");
+        script.append("import seaborn as sns\n");
+        script.append("import os\n");
+        script.append("import json\n\n");
+
+        // Configuración
+        script.append("# Configuración\n");
+        script.append("pd.set_option('display.max_columns', None)\n");
+        script.append("pd.set_option('display.width', None)\n");
+        script.append("pd.set_option('display.max_colwidth', 50)\n\n");
+
+        // Configurar estilo de visualización
+        script.append("# Configurar estilo de visualización\n");
+        script.append("sns.set(style='whitegrid')\n");
+        script.append("plt.rcParams['figure.figsize'] = (12, 8)\n\n");
+
+        // Crear directorio para resultados
+        script.append("# Crear directorio para resultados\n");
+        script.append("output_dir = './data/mining/results'\n");
+        script.append("os.makedirs(output_dir, exist_ok=True)\n\n");
+
+        // Función para guardar figuras
+        script.append("# Función para guardar figuras\n");
+        script.append("def save_fig(fig, name):\n");
+        script.append("    fig.savefig(os.path.join(output_dir, f'{name}.png'), bbox_inches='tight')\n");
+        script.append("    plt.close(fig)\n\n");
+
+        // Cargar datos
+        script.append("# Cargar datos\n");
+        script.append("df = pd.read_csv('").append(csvPath).append("')\n\n");
+
+        // Análisis básico
+        script.append("# Análisis básico\n");
+        script.append("print('\\nResumen estadístico:')\n");
+        script.append("print(df.describe())\n\n");
+
+        // Generar visualizaciones según el tipo de datos
+        script.append("# Visualizaciones\n");
+        script.append("print('\\nGenerando visualizaciones...')\n\n");
+
+        // Distribución de valores por columna
+        script.append("# Distribución de valores por columna\n");
+        script.append("for column in df.select_dtypes(include=['object']).columns:\n");
+        script.append("    fig, ax = plt.subplots()\n");
+        script.append("    value_counts = df[column].value_counts()\n");
+        script.append("    value_counts.plot(kind='bar', ax=ax)\n");
+        script.append("    ax.set_title(f'Distribución de {column}')\n");
+        script.append("    ax.set_ylabel('Frecuencia')\n");
+        script.append("    plt.xticks(rotation=45, ha='right')\n");
+        script.append("    save_fig(fig, f'distribution_{column}')\n\n");
+
+        // Histogramas para columnas numéricas
+        script.append("# Histogramas para columnas numéricas\n");
+        script.append("for column in df.select_dtypes(include=['int64', 'float64']).columns:\n");
+        script.append("    fig, ax = plt.subplots()\n");
+        script.append("    sns.histplot(data=df, x=column, ax=ax)\n");
+        script.append("    ax.set_title(f'Distribución de {column}')\n");
+        script.append("    save_fig(fig, f'histogram_{column}')\n\n");
+
+        // Generar resumen JSON
+        script.append("# Generar resumen JSON\n");
+        script.append("results = {\n");
+        script.append("    'shape': df.shape,\n");
+        script.append("    'columns': df.columns.tolist(),\n");
+        script.append("    'summary': df.describe().to_dict(),\n");
+        script.append("    'null_counts': df.isnull().sum().to_dict(),\n");
+        script.append("    'sample_rows': df.head(5).to_dict('records')\n");
+        script.append("}\n\n");
+
+        // Guardar resumen
+        script.append("# Guardar resumen\n");
+        script.append("result_path = os.path.join(output_dir, 'analysis_summary.json')\n");
+        script.append("with open(result_path, 'w') as f:\n");
+        script.append("    json.dump(results, f, default=str)\n\n");
+
+        script.append("print('\\nResumen guardado en:', result_path)\n");
+        script.append("print('Visualizaciones guardadas en:', output_dir)\n");
+
+        return script.toString();
     }
 } 

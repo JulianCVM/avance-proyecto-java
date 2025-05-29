@@ -142,12 +142,34 @@
             <div class="col-md-4">
                 <div class="card dashboard-card">
                     <div class="card-body text-center">
-                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
-                        <h5 class="card-title">Ver Visualizaciones</h5>
-                        <p class="card-text">Explora gráficos y visualizaciones de los datos analizados.</p>
-                        <a href="/pandas/visualize" class="btn btn-info">
-                            <i class="fas fa-eye"></i> Ver Visualizaciones
-                        </a>
+                        <i class="fas fa-file-csv fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Seleccionar CSV Existente</h5>
+                        <p class="card-text">Elige un archivo CSV previamente generado para analizar.</p>
+                        <select id="existingCsvSelect" class="form-select mb-2">
+                            <option value="">Selecciona un archivo...</option>
+                        </select>
+                        <button id="analyzeExistingBtn" class="btn btn-primary" disabled>
+                            <i class="fas fa-search"></i> Analizar Seleccionado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Logs -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-terminal me-2"></i>
+                            Logs de Ejecución
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="scriptOutput" class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                            <pre class="mb-0"><em>Los logs aparecerán aquí...</em></pre>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -287,25 +309,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Resultados del último procesamiento -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-code me-2"></i>
-                            Salida del Script Python
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="scriptOutput" class="code-container">
-                            <em>La salida del script aparecerá aquí después de procesar los datos.</em>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <footer class="bg-dark text-white mt-5 py-3">
@@ -405,6 +408,67 @@
                 });
             });
             
+            // Cargar lista de archivos CSV existentes
+            function loadExistingCsvFiles() {
+                $.ajax({
+                    url: '/pandas/list-csv-files',
+                    type: 'GET',
+                    success: function(response) {
+                        const select = $('#existingCsvSelect');
+                        select.empty().append('<option value="">Selecciona un archivo...</option>');
+                        
+                        if (response.files && response.files.length > 0) {
+                            response.files.forEach(file => {
+                                select.append(`<option value="${file}">${file}</option>`);
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error al cargar archivos CSV:', xhr);
+                        $('#scriptOutput').html('<div class="alert alert-danger">Error al cargar la lista de archivos CSV</div>');
+                    }
+                });
+            }
+
+            // Habilitar/deshabilitar botón de análisis según selección
+            $('#existingCsvSelect').change(function() {
+                $('#analyzeExistingBtn').prop('disabled', !$(this).val());
+            });
+
+            // Analizar archivo CSV existente
+            $('#analyzeExistingBtn').click(function() {
+                const selectedFile = $('#existingCsvSelect').val();
+                if (!selectedFile) return;
+
+                $('#loadingIndicator').show();
+                $('#dataSummary').hide();
+                $('#noDataMessage').hide();
+                $('#scriptOutput').html('<em>Analizando archivo seleccionado...</em>');
+
+                $.ajax({
+                    url: '/pandas/analyze-existing',
+                    type: 'POST',
+                    data: { filename: selectedFile },
+                    success: function(response) {
+                        $('#loadingIndicator').hide();
+                        
+                        if (response.status === 'success') {
+                            $('#scriptOutput').html('<pre>' + response.scriptOutput + '</pre>');
+                            refreshSummary();
+                        } else {
+                            $('#scriptOutput').html('<div class="alert alert-danger">Error: ' + response.errorMessage + '</div>');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loadingIndicator').hide();
+                        $('#scriptOutput').html('<div class="alert alert-danger">Error en la solicitud: ' + xhr.statusText + '</div>');
+                    }
+                });
+            });
+
+            // Cargar archivos CSV al iniciar
+            loadExistingCsvFiles();
+
             // Función para actualizar el resumen
             function refreshSummary() {
                 $.ajax({

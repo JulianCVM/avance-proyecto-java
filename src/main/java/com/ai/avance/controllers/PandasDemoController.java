@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Controlador para la demostración de funcionalidades de Pandas.
@@ -55,31 +57,20 @@ public class PandasDemoController {
      */
     @PostMapping("/generate")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> generateTestData(
-            @RequestParam(defaultValue = "50") int numSessions) {
-        log.info("Generando {} sesiones de datos de prueba para demostración de Pandas", numSessions);
-        Map<String, Object> results = pandasTestService.generateTestData(numSessions);
+    public Map<String, Object> generateData(@RequestParam(defaultValue = "50") int numSessions) {
+        Map<String, Object> response = new HashMap<>();
         
-        // Si el análisis automático de los archivos de Pandas fue exitoso, 
-        // actualizar la información del script output para mostrar los resultados
-        if (results.containsKey("messageAnalysisOutput") || results.containsKey("sessionAnalysisOutput")) {
-            StringBuilder combinedOutput = new StringBuilder();
-            combinedOutput.append(results.get("scriptOutput")).append("\n\n");
-            
-            if (results.containsKey("sessionAnalysisOutput")) {
-                combinedOutput.append("=== ANÁLISIS DE SESIONES GENERADAS POR PANDAS ===\n");
-                combinedOutput.append(results.get("sessionAnalysisOutput")).append("\n\n");
-            }
-            
-            if (results.containsKey("messageAnalysisOutput")) {
-                combinedOutput.append("=== ANÁLISIS DE MENSAJES GENERADOS POR PANDAS ===\n");
-                combinedOutput.append(results.get("messageAnalysisOutput"));
-            }
-            
-            results.put("scriptOutput", combinedOutput.toString());
+        try {
+            Map<String, Object> results = pandasTestService.generateTestData(numSessions);
+            response.put("status", "success");
+            response.put("scriptOutput", results.get("scriptOutput"));
+        } catch (Exception e) {
+            log.error("Error generando datos de prueba", e);
+            response.put("status", "error");
+            response.put("errorMessage", e.getMessage());
         }
         
-        return ResponseEntity.ok(results);
+        return response;
     }
     
     /**
@@ -169,5 +160,50 @@ public class PandasDemoController {
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .body(resource);
+    }
+
+    /**
+     * Lista los archivos CSV disponibles en el directorio de datos
+     * @return lista de archivos CSV
+     */
+    @GetMapping("/list-csv-files")
+    @ResponseBody
+    public Map<String, Object> listCsvFiles() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<String> files = pandasTestService.listCsvFiles();
+            response.put("status", "success");
+            response.put("files", files);
+        } catch (Exception e) {
+            log.error("Error listando archivos CSV", e);
+            response.put("status", "error");
+            response.put("errorMessage", e.getMessage());
+        }
+        
+        return response;
+    }
+
+    /**
+     * Analiza un archivo CSV existente
+     * @param filename nombre del archivo a analizar
+     * @return resultados del análisis
+     */
+    @PostMapping("/analyze-existing")
+    @ResponseBody
+    public Map<String, Object> analyzeExistingFile(@RequestParam String filename) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            String scriptOutput = pandasTestService.analyzeExistingFile(filename);
+            response.put("status", "success");
+            response.put("scriptOutput", scriptOutput);
+        } catch (Exception e) {
+            log.error("Error analizando archivo existente", e);
+            response.put("status", "error");
+            response.put("errorMessage", e.getMessage());
+        }
+        
+        return response;
     }
 } 
