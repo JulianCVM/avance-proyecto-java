@@ -63,6 +63,67 @@ public class PandasTestService {
             String scriptOutput = executePythonScript(scriptPath);
             results.put("scriptOutput", scriptOutput);
             
+            // Verificar y analizar los archivos CSV generados por Pandas
+            String baseRawPath = dataMiningPaths.getRawDataPath();
+            
+            // Posibles ubicaciones para los archivos generados
+            String[] possibleSessionPaths = {
+                baseRawPath + "/pandas_generated_sessions.csv",
+                baseRawPath + "/../pandas_generated_sessions.csv",
+                baseRawPath + "/../raw/pandas_generated_sessions.csv"
+            };
+            
+            String[] possibleMessagePaths = {
+                baseRawPath + "/pandas_generated_messages.csv",
+                baseRawPath + "/../pandas_generated_messages.csv",
+                baseRawPath + "/../raw/pandas_generated_messages.csv"
+            };
+            
+            // Buscar el archivo de sesiones
+            File pandasSessionsFile = null;
+            String pandasSessionsPath = null;
+            
+            for (String path : possibleSessionPaths) {
+                File file = new File(path);
+                if (file.exists()) {
+                    pandasSessionsFile = file;
+                    pandasSessionsPath = path;
+                    break;
+                }
+            }
+            
+            // Buscar el archivo de mensajes
+            File pandasMessagesFile = null;
+            String pandasMessagesPath = null;
+            
+            for (String path : possibleMessagePaths) {
+                File file = new File(path);
+                if (file.exists()) {
+                    pandasMessagesFile = file;
+                    pandasMessagesPath = path;
+                    break;
+                }
+            }
+            
+            // Si existen los archivos generados por Pandas, analizarlos
+            if (pandasSessionsFile != null) {
+                log.info("Analizando archivo de sesiones generado por Pandas: {}", pandasSessionsPath);
+                String sessionAnalysisScript = generateAnalysisScript("sesiones", pandasSessionsPath);
+                String sessionAnalysisOutput = executePythonScript(sessionAnalysisScript);
+                results.put("sessionAnalysisOutput", sessionAnalysisOutput);
+            } else {
+                log.warn("No se encontró el archivo de sesiones generado por Pandas");
+            }
+            
+            if (pandasMessagesFile != null) {
+                log.info("Analizando archivo de mensajes generado por Pandas: {}", pandasMessagesPath);
+                String messageAnalysisScript = generateAnalysisScript("mensajes", pandasMessagesPath);
+                String messageAnalysisOutput = executePythonScript(messageAnalysisScript);
+                results.put("messageAnalysisOutput", messageAnalysisOutput);
+            } else {
+                log.warn("No se encontró el archivo de mensajes generado por Pandas");
+            }
+            
             results.put("status", "success");
             results.put("numSessions", numSessions);
             results.put("timestamp", LocalDateTime.now().format(DATE_FORMATTER));
@@ -106,11 +167,19 @@ public class PandasTestService {
             
             writer.write("# Crear directorio para resultados\n");
             writer.write(String.format("output_dir = '%s'\n", outputDir.replace("\\", "\\\\")));
-            writer.write("os.makedirs(output_dir, exist_ok=True)\n\n");
+            writer.write("try:\n");
+            writer.write("    os.makedirs(output_dir, exist_ok=True)\n");
+            writer.write("    print('Directorio de resultados creado:', output_dir)\n");
+            writer.write("except Exception as e:\n");
+            writer.write("    print('Error al crear directorio de resultados:', e)\n");
+            writer.write("    # Intentar con un directorio alternativo\n");
+            writer.write("    output_dir = './data/mining/results'\n");
+            writer.write("    os.makedirs(output_dir, exist_ok=True)\n");
+            writer.write("    print('Usando directorio alternativo:', output_dir)\n\n");
             
             writer.write("# Función para guardar figuras\n");
             writer.write("def save_fig(fig, name):\n");
-            writer.write("    fig.savefig(os.path.join(output_dir, f'{name}.png'), bbox_inches='tight')\n");
+            writer.write("    fig.savefig(os.path.join(output_dir, name + '.png'), bbox_inches='tight')\n");
             writer.write("    plt.close(fig)\n\n");
             
             writer.write("# Cargar datos\n");
@@ -247,8 +316,8 @@ public class PandasTestService {
             writer.write("with open(result_path, 'w') as f:\n");
             writer.write("    json.dump(results, f, default=str)\n\n");
             
-            writer.write("print('\\nResumen guardado en:', result_path)\n");
-            writer.write("print('Visualizaciones guardadas en:', output_dir)\n");
+            writer.write("print('\\nResumen guardado en: ' + result_path)\n");
+            writer.write("print('Visualizaciones guardadas en: ' + output_dir)\n");
             
             log.info("Script de análisis generado: {}", scriptPath);
             return scriptPath;
@@ -309,20 +378,8 @@ public class PandasTestService {
      * @return resultado de la ejecución
      */
     private String executePythonScript(String scriptPath) {
-        try {
-            ScriptEngineManager manager = new ScriptEngineManager();
-            ScriptEngine engine = manager.getEngineByName("python");
-            
-            if (engine == null) {
-                log.warn("Motor de Python (Jython) no disponible, intentando ejecutar con proceso externo");
-                return executeExternalPythonProcess(scriptPath);
-            }
-            
-            return engine.eval(new java.io.FileReader(scriptPath)).toString();
-        } catch (ScriptException | IOException e) {
-            log.error("Error al ejecutar script Python con Jython", e);
-            return executeExternalPythonProcess(scriptPath);
-        }
+        // Siempre usar proceso externo en lugar de Jython
+        return executeExternalPythonProcess(scriptPath);
     }
     
     /**
@@ -332,9 +389,40 @@ public class PandasTestService {
      */
     private String executeExternalPythonProcess(String scriptPath) {
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
+            // Ruta específica al ejecutable de Python
+            String pythonExecutable = "C:/Users/julia/AppData/Local/Programs/Python/Python313/python.exe";
+            
+            // También intentar con comandos genéricos si la ruta específica falla
+            String[] possibleCommands = {
+                pythonExecutable,
+                "python",
+                "python3",
+                "py"
+            };
+            
+            ProcessBuilder processBuilder = null;
+            Process process = null;
+            
+            // Intentar con cada comando hasta que uno funcione
+            for (String cmd : possibleCommands) {
+                try {
+                    log.info("Intentando ejecutar Python con: {}", cmd);
+                    processBuilder = new ProcessBuilder(cmd, scriptPath);
+                    processBuilder.redirectErrorStream(true);
+                    process = processBuilder.start();
+                    
+                    // Si llegamos aquí sin excepción, el comando funcionó
+                    log.info("Ejecutando script Python con comando: {}", cmd);
+                    break;
+                } catch (IOException e) {
+                    log.warn("No se pudo ejecutar el script con el comando: {} - Error: {}", cmd, e.getMessage());
+                    // Continuar con el siguiente comando
+                }
+            }
+            
+            if (process == null) {
+                return "Error: No se pudo ejecutar ningún comando de Python. Asegúrate de que Python esté instalado y en el PATH del sistema.";
+            }
             
             java.util.Scanner scanner = new java.util.Scanner(process.getInputStream()).useDelimiter("\\A");
             String output = scanner.hasNext() ? scanner.next() : "";
@@ -342,10 +430,15 @@ public class PandasTestService {
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 log.warn("El script Python terminó con código de salida: {}", exitCode);
+                // Incluir más información en caso de error
+                if (!output.isEmpty()) {
+                    log.info("Salida del script con error: {}", output);
+                }
             }
             
             return output;
-        } catch (IOException | InterruptedException e) {
+            
+        } catch (InterruptedException e) {
             log.error("Error al ejecutar script Python como proceso externo", e);
             return "Error: " + e.getMessage();
         }
@@ -358,11 +451,30 @@ public class PandasTestService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getAnalysisSummary() {
         try {
-            String summaryPath = dataMiningPaths.getResultsPath() + "/analysis_summary.json";
-            File summaryFile = new File(summaryPath);
+            String baseResultsPath = dataMiningPaths.getResultsPath();
             
-            if (!summaryFile.exists()) {
-                log.warn("No se encontró archivo de resumen de análisis");
+            // Posibles ubicaciones del archivo de resumen
+            String[] possiblePaths = {
+                baseResultsPath + "/analysis_summary.json",
+                baseResultsPath + "/../results/analysis_summary.json",
+                baseResultsPath + "/../analysis_summary.json",
+                "./data/mining/results/analysis_summary.json" // Ruta absoluta común
+            };
+            
+            File summaryFile = null;
+            
+            // Buscar en todas las ubicaciones posibles
+            for (String path : possiblePaths) {
+                File file = new File(path);
+                if (file.exists()) {
+                    summaryFile = file;
+                    log.info("Archivo de resumen encontrado en: {}", path);
+                    break;
+                }
+            }
+            
+            if (summaryFile == null || !summaryFile.exists()) {
+                log.warn("No se encontró archivo de resumen de análisis en ninguna ubicación");
                 return new HashMap<>();
             }
             

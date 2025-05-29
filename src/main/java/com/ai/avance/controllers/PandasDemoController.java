@@ -1,14 +1,19 @@
 package com.ai.avance.controllers;
 
 import com.ai.avance.data_mining.testing.PandasTestService;
+import com.ai.avance.config.DataMiningConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.Map;
 
 /**
@@ -23,6 +28,7 @@ import java.util.Map;
 public class PandasDemoController {
 
     private final PandasTestService pandasTestService;
+    private final DataMiningConfig.Paths dataMiningPaths;
     
     /**
      * Página principal de demostración de Pandas
@@ -53,6 +59,26 @@ public class PandasDemoController {
             @RequestParam(defaultValue = "50") int numSessions) {
         log.info("Generando {} sesiones de datos de prueba para demostración de Pandas", numSessions);
         Map<String, Object> results = pandasTestService.generateTestData(numSessions);
+        
+        // Si el análisis automático de los archivos de Pandas fue exitoso, 
+        // actualizar la información del script output para mostrar los resultados
+        if (results.containsKey("messageAnalysisOutput") || results.containsKey("sessionAnalysisOutput")) {
+            StringBuilder combinedOutput = new StringBuilder();
+            combinedOutput.append(results.get("scriptOutput")).append("\n\n");
+            
+            if (results.containsKey("sessionAnalysisOutput")) {
+                combinedOutput.append("=== ANÁLISIS DE SESIONES GENERADAS POR PANDAS ===\n");
+                combinedOutput.append(results.get("sessionAnalysisOutput")).append("\n\n");
+            }
+            
+            if (results.containsKey("messageAnalysisOutput")) {
+                combinedOutput.append("=== ANÁLISIS DE MENSAJES GENERADOS POR PANDAS ===\n");
+                combinedOutput.append(results.get("messageAnalysisOutput"));
+            }
+            
+            results.put("scriptOutput", combinedOutput.toString());
+        }
+        
         return ResponseEntity.ok(results);
     }
     
@@ -99,5 +125,49 @@ public class PandasDemoController {
         model.addAttribute("summary", summary);
         
         return "pandas/visualize";
+    }
+    
+    /**
+     * Sirve imágenes de visualización desde el directorio de resultados
+     * @param filename nombre del archivo de imagen
+     * @return recurso de imagen
+     */
+    @GetMapping("/results/{filename:.+}")
+    @ResponseBody
+    public ResponseEntity<Resource> getResultImage(@PathVariable String filename) {
+        String resultsPath = dataMiningPaths.getResultsPath();
+        File imageFile = new File(resultsPath + "/" + filename);
+        
+        // Si no se encuentra en la ubicación principal, buscar en ubicaciones alternativas
+        if (!imageFile.exists()) {
+            log.info("Buscando imagen en ubicaciones alternativas: {}", filename);
+            
+            // Posibles ubicaciones alternativas
+            String[] possiblePaths = {
+                resultsPath + "/../results/" + filename,
+                resultsPath + "/../" + filename,
+                resultsPath + "/../../results/" + filename,
+                "./data/mining/results/" + filename  // Ruta absoluta común
+            };
+            
+            for (String path : possiblePaths) {
+                File altFile = new File(path);
+                if (altFile.exists()) {
+                    imageFile = altFile;
+                    log.info("Imagen encontrada en: {}", path);
+                    break;
+                }
+            }
+        }
+        
+        if (!imageFile.exists()) {
+            log.warn("Imagen solicitada no encontrada: {}", filename);
+            return ResponseEntity.notFound().build();
+        }
+        
+        Resource resource = new FileSystemResource(imageFile);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(resource);
     }
 } 

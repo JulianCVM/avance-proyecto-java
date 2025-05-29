@@ -201,7 +201,10 @@ public class DataGenerator {
             writer.write("import numpy as np\n");
             writer.write("from datetime import datetime, timedelta\n");
             writer.write("import random\n");
-            writer.write("import os\n\n");
+            writer.write("import os\n");
+            writer.write("import matplotlib.pyplot as plt\n");
+            writer.write("import seaborn as sns\n");
+            writer.write("import json\n\n");
             
             writer.write("# Configuración\n");
             writer.write(String.format("num_sessions = %d\n", numSessions));
@@ -226,7 +229,7 @@ public class DataGenerator {
             writer.write("    topic = random.choice(topics)\n");
             writer.write("    user_id = random.choice(user_ids)\n");
             writer.write("    agent_id = random.choice(agent_ids)\n");
-            writer.write("    title = f'Consulta sobre {topic}'\n");
+            writer.write("    title = 'Consulta sobre ' + topic\n");
             writer.write("    created_at = datetime.now() - timedelta(days=random.randint(0, 14), hours=random.randint(0, 24))\n");
             writer.write("    duration_minutes = random.randint(5, 60)\n");
             writer.write("    last_activity = created_at + timedelta(minutes=duration_minutes)\n");
@@ -264,7 +267,7 @@ public class DataGenerator {
             writer.write("    for i in range(num_messages):\n");
             writer.write("        role = roles[i % 2]  # Alternar entre usuario y asistente\n");
             writer.write("        content_length = random.randint(10, 100)\n");
-            writer.write("        content = f'Mensaje de {role} sobre {topic} ' + ' '.join(['palabra'] * content_length)\n");
+            writer.write("        content = 'Mensaje de ' + role + ' sobre ' + topic + ' ' + ' '.join(['palabra'] * content_length)\n");
             writer.write("        timestamp = start_time + timedelta(minutes=i*2)\n");
             writer.write("        token_count = len(content.split()) * 4 + random.randint(0, 20)\n");
             writer.write("        flagged = random.random() < 0.05\n");
@@ -294,8 +297,8 @@ public class DataGenerator {
             writer.write("sessions_df.to_csv(output_sessions, index=False)\n");
             writer.write("messages_df.to_csv(output_messages, index=False)\n\n");
             
-            writer.write("print(f'Generados {len(sessions_df)} sesiones y {len(messages_df)} mensajes')\n");
-            writer.write("print(f'Archivos guardados en:\\n{output_sessions}\\n{output_messages}')\n\n");
+            writer.write("print('Generados ' + str(len(sessions_df)) + ' sesiones y ' + str(len(messages_df)) + ' mensajes')\n");
+            writer.write("print('Archivos guardados en:\\n' + output_sessions + '\\n' + output_messages)\n\n");
             
             writer.write("# Análisis exploratorio básico\n");
             writer.write("print('\\nAnálisis Exploratorio Básico:')\n");
@@ -313,7 +316,90 @@ public class DataGenerator {
             
             writer.write("print('\\nEstadísticas de duración de sesiones (minutos):')\n");
             writer.write("duration_stats = sessions_df['duration_minutes'].describe()\n");
-            writer.write("print(duration_stats)\n");
+            writer.write("print(duration_stats)\n\n");
+            
+            // Agregar código para guardar visualizaciones automáticamente
+            writer.write("# Generar visualizaciones automáticas\n");
+            writer.write("print('\\nGenerando visualizaciones...')\n");
+            writer.write("results_dir = os.path.join(os.path.dirname(output_dir), 'results')\n");
+            writer.write("os.makedirs(results_dir, exist_ok=True)\n\n");
+            
+            writer.write("# Función para guardar figuras\n");
+            writer.write("def save_viz(fig, name):\n");
+            writer.write("    fig.savefig(os.path.join(results_dir, name + '.png'), bbox_inches='tight')\n");
+            writer.write("    plt.close(fig)\n\n");
+            
+            writer.write("# 1. Distribución de mensajes por rol\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("sns.countplot(data=messages_df, x='role', ax=ax)\n");
+            writer.write("ax.set_title('Distribución de Mensajes por Rol')\n");
+            writer.write("save_viz(fig, 'role_distribution')\n\n");
+            
+            writer.write("# 2. Distribución de mensajes por tema\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("topic_counts = messages_df['topic'].value_counts()\n");
+            writer.write("topic_counts.plot(kind='bar', ax=ax)\n");
+            writer.write("ax.set_title('Distribución de Mensajes por Tema')\n");
+            writer.write("ax.set_ylabel('Número de Mensajes')\n");
+            writer.write("ax.set_xlabel('Tema')\n");
+            writer.write("plt.xticks(rotation=45, ha='right')\n");
+            writer.write("save_viz(fig, 'topic_distribution')\n\n");
+            
+            writer.write("# 3. Distribución de duración de sesiones\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("sns.histplot(data=sessions_df, x='duration_minutes', bins=20, ax=ax)\n");
+            writer.write("ax.set_title('Distribución de Duración de Sesiones')\n");
+            writer.write("ax.set_xlabel('Duración (minutos)')\n");
+            writer.write("ax.set_ylabel('Frecuencia')\n");
+            writer.write("save_viz(fig, 'session_duration')\n\n");
+            
+            writer.write("# 4. Distribución de mensajes por sesión\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("sns.histplot(data=sessions_df, x='message_count', bins=15, ax=ax)\n");
+            writer.write("ax.set_title('Distribución de Mensajes por Sesión')\n");
+            writer.write("ax.set_xlabel('Número de Mensajes')\n");
+            writer.write("ax.set_ylabel('Frecuencia')\n");
+            writer.write("save_viz(fig, 'messages_per_session')\n\n");
+            
+            writer.write("# 5. Distribución de sesiones por tema\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("topic_counts = sessions_df['topic'].value_counts()\n");
+            writer.write("topic_counts.plot(kind='bar', ax=ax)\n");
+            writer.write("ax.set_title('Distribución de Sesiones por Tema')\n");
+            writer.write("ax.set_ylabel('Número de Sesiones')\n");
+            writer.write("ax.set_xlabel('Tema')\n");
+            writer.write("plt.xticks(rotation=45, ha='right')\n");
+            writer.write("save_viz(fig, 'sessions_by_topic')\n\n");
+            
+            writer.write("# 6. Relación entre duración y número de mensajes\n");
+            writer.write("fig, ax = plt.subplots()\n");
+            writer.write("sns.scatterplot(data=sessions_df, x='message_count', y='duration_minutes', ax=ax)\n");
+            writer.write("ax.set_title('Relación entre Duración y Número de Mensajes')\n");
+            writer.write("ax.set_xlabel('Número de Mensajes')\n");
+            writer.write("ax.set_ylabel('Duración (minutos)')\n");
+            writer.write("save_viz(fig, 'duration_vs_messages')\n\n");
+            
+            writer.write("# Generar resumen JSON para la interfaz web\n");
+            writer.write("results_summary = {\n");
+            writer.write("    'shape_messages': messages_df.shape,\n");
+            writer.write("    'shape_sessions': sessions_df.shape,\n");
+            writer.write("    'columns_messages': messages_df.columns.tolist(),\n");
+            writer.write("    'columns_sessions': sessions_df.columns.tolist(),\n");
+            writer.write("    'summary_messages': messages_df.describe().to_dict(),\n");
+            writer.write("    'summary_sessions': sessions_df.describe().to_dict(),\n");
+            writer.write("    'null_counts_messages': messages_df.isnull().sum().to_dict(),\n");
+            writer.write("    'null_counts_sessions': sessions_df.isnull().sum().to_dict(),\n");
+            writer.write("    'sample_messages': messages_df.head(5).to_dict('records'),\n");
+            writer.write("    'sample_sessions': sessions_df.head(5).to_dict('records')\n");
+            writer.write("}\n\n");
+            
+            writer.write("# Guardar resumen\n");
+            writer.write("result_path = os.path.join(results_dir, 'analysis_summary.json')\n");
+            writer.write("with open(result_path, 'w') as f:\n");
+            writer.write("    json.dump(results_summary, f, default=str)\n\n");
+            
+            writer.write("print('\\nResumen guardado en: ' + result_path)\n");
+            writer.write("print('Visualizaciones guardadas en: ' + results_dir)\n");
             
             log.info("Script de generación de datos con Pandas generado: {}", scriptPath);
             return scriptPath;
