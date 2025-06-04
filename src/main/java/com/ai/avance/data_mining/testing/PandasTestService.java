@@ -45,26 +45,49 @@ public class PandasTestService {
     public Map<String, Object> generateTestData(int numSessions) {
         Map<String, Object> results = new HashMap<>();
         try {
+            log.info("Iniciando generación de datos de prueba con {} sesiones", numSessions);
+            
+            // Crear directorios necesarios
+            String rawDir = dataMiningPaths.getRawDataPath();
+            String processedDir = dataMiningPaths.getProcessedDataPath();
+            String resultsDir = dataMiningPaths.getResultsPath();
+            
+            log.info("Rutas de directorios: raw={}, processed={}, results={}", 
+                    rawDir, processedDir, resultsDir);
+            
+            new File(rawDir).mkdirs();
+            new File(processedDir).mkdirs();
+            new File(resultsDir).mkdirs();
+            
+            log.info("Directorios creados/verificados");
+
             // Generar script para crear datos de ejemplo
             StringBuilder script = new StringBuilder();
             script.append("import pandas as pd\n");
             script.append("import numpy as np\n");
             script.append("import random\n");
             script.append("from datetime import datetime, timedelta\n");
-            script.append("import os\n\n");
+            script.append("import os\n");
+            script.append("import sys\n\n");
 
             // Configuración
             script.append("# Configuración\n");
+            script.append("print('Python version:', sys.version)\n");
+            script.append("print('Pandas version:', pd.__version__)\n");
+            script.append("print('NumPy version:', np.__version__)\n\n");
+            
             script.append("random.seed(42)\n");
             script.append("np.random.seed(42)\n\n");
 
             // Crear directorio para datos
             script.append("# Crear directorio para datos\n");
-            script.append("raw_dir = './data/mining/raw'\n");
+            script.append(String.format("raw_dir = '%s'\n", rawDir.replace("\\", "\\\\")));
+            script.append("print('Creando directorio:', raw_dir)\n");
             script.append("os.makedirs(raw_dir, exist_ok=True)\n\n");
 
             // Generar datos de sesiones
             script.append("# Generar datos de sesiones\n");
+            script.append("print('Generando datos de sesiones...')\n");
             script.append("session_data = []\n");
             script.append("start_date = datetime.now() - timedelta(days=30)\n");
             script.append("topics = ['General', 'Técnico', 'Soporte', 'Ventas', 'Otros']\n");
@@ -87,10 +110,13 @@ public class PandasTestService {
             script.append("    })\n\n");
 
             script.append("sessions_df = pd.DataFrame(session_data)\n");
-            script.append("sessions_df.to_csv(os.path.join(raw_dir, 'sessions.csv'), index=False)\n\n");
+            script.append("sessions_path = os.path.join(raw_dir, 'sessions.csv')\n");
+            script.append("print('Guardando sesiones en:', sessions_path)\n");
+            script.append("sessions_df.to_csv(sessions_path, index=False)\n\n");
 
             // Generar datos de mensajes
             script.append("# Generar datos de mensajes\n");
+            script.append("print('Generando datos de mensajes...')\n");
             script.append("message_data = []\n");
             script.append("message_templates = [\n");
             script.append("    'Hola, ¿cómo estás?',\n");
@@ -126,7 +152,9 @@ public class PandasTestService {
             script.append("        })\n\n");
 
             script.append("messages_df = pd.DataFrame(message_data)\n");
-            script.append("messages_df.to_csv(os.path.join(raw_dir, 'messages.csv'), index=False)\n\n");
+            script.append("messages_path = os.path.join(raw_dir, 'messages.csv')\n");
+            script.append("print('Guardando mensajes en:', messages_path)\n");
+            script.append("messages_df.to_csv(messages_path, index=False)\n\n");
 
             // Imprimir resumen
             script.append("# Imprimir resumen\n");
@@ -138,11 +166,25 @@ public class PandasTestService {
             script.append("print('\\nDistribución de roles:')\n");
             script.append("print(messages_df['role'].value_counts())\n");
 
+            // Guardar el script en un archivo temporal
+            String scriptPath = dataMiningPaths.getProcessedDataPath() + "/generate_data_" + 
+                              LocalDateTime.now().format(DATE_FORMATTER) + ".py";
+            
+            try (FileWriter writer = new FileWriter(scriptPath)) {
+                writer.write(script.toString());
+            }
+            
+            log.info("Script generado en: {}", scriptPath);
+
             // Ejecutar script
-            String scriptOutput = executePythonScript(script.toString());
+            log.info("Ejecutando script de generación de datos...");
+            String scriptOutput = executePythonScript(scriptPath);
+            log.info("Script ejecutado. Salida:\n{}", scriptOutput);
+            
             results.put("scriptOutput", scriptOutput);
 
             // Analizar los archivos generados
+            log.info("Analizando archivos generados...");
             String sessionsAnalysis = analyzeExistingFile("sessions.csv");
             String messagesAnalysis = analyzeExistingFile("messages.csv");
 
@@ -412,54 +454,34 @@ public class PandasTestService {
             // Ruta específica al ejecutable de Python
             String pythonExecutable = "C:/Users/julia/AppData/Local/Programs/Python/Python313/python.exe";
             
-            // También intentar con comandos genéricos si la ruta específica falla
-            String[] possibleCommands = {
-                pythonExecutable,
-                "python",
-                "python3",
-                "py"
-            };
+            // Crear el proceso con la ruta específica
+            ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutable, scriptPath);
+            processBuilder.redirectErrorStream(true);
             
-            ProcessBuilder processBuilder = null;
-            Process process = null;
+            log.info("Ejecutando script Python con: {}", pythonExecutable);
+            Process process = processBuilder.start();
             
-            // Intentar con cada comando hasta que uno funcione
-            for (String cmd : possibleCommands) {
-                try {
-                    log.info("Intentando ejecutar Python con: {}", cmd);
-                    processBuilder = new ProcessBuilder(cmd, scriptPath);
-                    processBuilder.redirectErrorStream(true);
-                    process = processBuilder.start();
-                    
-                    // Si llegamos aquí sin excepción, el comando funcionó
-                    log.info("Ejecutando script Python con comando: {}", cmd);
-                    break;
-                } catch (IOException e) {
-                    log.warn("No se pudo ejecutar el script con el comando: {} - Error: {}", cmd, e.getMessage());
-                    // Continuar con el siguiente comando
-                }
-            }
-            
-            if (process == null) {
-                return "Error: No se pudo ejecutar ningún comando de Python. Asegúrate de que Python esté instalado y en el PATH del sistema.";
-            }
-            
+            // Capturar la salida
             java.util.Scanner scanner = new java.util.Scanner(process.getInputStream()).useDelimiter("\\A");
             String output = scanner.hasNext() ? scanner.next() : "";
             
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 log.warn("El script Python terminó con código de salida: {}", exitCode);
-                // Incluir más información en caso de error
                 if (!output.isEmpty()) {
                     log.info("Salida del script con error: {}", output);
+                    return "Error al ejecutar el script Python (código " + exitCode + "):\n" + output;
                 }
             }
             
             return output;
             
+        } catch (IOException e) {
+            log.error("Error al ejecutar script Python", e);
+            return "Error al ejecutar Python: " + e.getMessage() + "\n" +
+                   "Ruta del script: " + scriptPath;
         } catch (InterruptedException e) {
-            log.error("Error al ejecutar script Python como proceso externo", e);
+            log.error("Error al ejecutar script Python", e);
             return "Error: " + e.getMessage();
         }
     }

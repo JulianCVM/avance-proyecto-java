@@ -61,13 +61,16 @@ public class PandasDemoController {
         Map<String, Object> response = new HashMap<>();
         
         try {
+            log.info("Recibida solicitud para generar {} sesiones", numSessions);
             Map<String, Object> results = pandasTestService.generateTestData(numSessions);
             response.put("status", "success");
             response.put("scriptOutput", results.get("scriptOutput"));
+            log.info("Datos generados exitosamente");
         } catch (Exception e) {
             log.error("Error generando datos de prueba", e);
             response.put("status", "error");
-            response.put("errorMessage", e.getMessage());
+            response.put("errorMessage", "Error: " + e.getMessage() + "\n" + 
+                          "Detalles: " + e.toString());
         }
         
         return response;
