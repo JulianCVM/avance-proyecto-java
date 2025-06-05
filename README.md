@@ -68,31 +68,46 @@ graph TD
 
 ### 1. Modelo LLM (`LLMModel`)
 ```java
+/**
+ * Entidad principal que representa un modelo de lenguaje (LLM).
+ * Esta clase almacena toda la configuración y datos relacionados con un modelo específico.
+ */
 @Entity
 @Table(name = "llm_models")
 public class LLMModel {
+    // Identificador único del modelo
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // Nombre del modelo (ej: "GPT-4", "Gemini-Pro")
     @Column(nullable = false)
     private String name;
     
+    // Versión del modelo (ej: "1.0", "2.0")
     @Column(nullable = false)
     private String version;
     
+    // Tipo de modelo (GPT, GEMINI, etc.)
     @Column(nullable = false)
-    private String modelType; // GPT, GEMINI, etc.
+    private String modelType;
     
+    // Número máximo de tokens que puede procesar el modelo
     @Column(nullable = false)
     private Integer maxTokens;
     
+    // Temperatura para la generación (0.0 - 1.0)
+    // Valores más bajos = respuestas más deterministas
+    // Valores más altos = respuestas más creativas
     @Column(nullable = false)
     private Double temperature;
     
+    // Lista de datos de entrenamiento asociados al modelo
+    // CascadeType.ALL asegura que los datos se eliminen si se elimina el modelo
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL)
     private List<TrainingData> trainingData = new ArrayList<>();
     
+    // Lista de parámetros específicos del modelo
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL)
     private List<ModelParameter> parameters = new ArrayList<>();
 }
@@ -405,31 +420,46 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 #### LLMModel
 ```java
+/**
+ * Entidad principal que representa un modelo de lenguaje (LLM).
+ * Esta clase almacena toda la configuración y datos relacionados con un modelo específico.
+ */
 @Entity
 @Table(name = "llm_models")
 public class LLMModel {
+    // Identificador único del modelo
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // Nombre del modelo (ej: "GPT-4", "Gemini-Pro")
     @Column(nullable = false)
     private String name;
     
+    // Versión del modelo (ej: "1.0", "2.0")
     @Column(nullable = false)
     private String version;
     
+    // Tipo de modelo (GPT, GEMINI, etc.)
     @Column(nullable = false)
-    private String modelType; // GPT, GEMINI, etc.
+    private String modelType;
     
+    // Número máximo de tokens que puede procesar el modelo
     @Column(nullable = false)
     private Integer maxTokens;
     
+    // Temperatura para la generación (0.0 - 1.0)
+    // Valores más bajos = respuestas más deterministas
+    // Valores más altos = respuestas más creativas
     @Column(nullable = false)
     private Double temperature;
     
+    // Lista de datos de entrenamiento asociados al modelo
+    // CascadeType.ALL asegura que los datos se eliminen si se elimina el modelo
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL)
     private List<TrainingData> trainingData = new ArrayList<>();
     
+    // Lista de parámetros específicos del modelo
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL)
     private List<ModelParameter> parameters = new ArrayList<>();
 }
@@ -438,22 +468,34 @@ public class LLMModel {
 
 #### TrainingData
 ```java
+/**
+ * Representa los datos de entrenamiento para un modelo LLM.
+ * Cada instancia contiene un par input-output para el entrenamiento.
+ */
 @Entity
 @Table(name = "training_data")
 public class TrainingData {
+    // Identificador único del dato de entrenamiento
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // Texto de entrada para el entrenamiento
+    // columnDefinition = "TEXT" permite textos largos
     @Column(nullable = false, columnDefinition = "TEXT")
     private String input;
     
+    // Salida esperada para el entrenamiento
     @Column(nullable = false, columnDefinition = "TEXT")
     private String expectedOutput;
     
+    // Metadatos adicionales en formato JSON
+    // Puede contener contexto, etiquetas, etc.
     @Column(columnDefinition = "TEXT")
     private String metadata;
     
+    // Relación muchos a uno con el modelo
+    // Un modelo puede tener muchos datos de entrenamiento
     @ManyToOne
     @JoinColumn(name = "model_id")
     private LLMModel model;
@@ -487,13 +529,24 @@ public class ModelParameter {
 
 #### LLMService
 ```java
+/**
+ * Servicio principal para la gestión de modelos LLM.
+ * Maneja la creación, entrenamiento y procesamiento de modelos.
+ */
 @Service
 @Transactional
 public class LLMService {
+    // Repositorio para operaciones de base de datos
     private final LLMModelRepository modelRepository;
+    
+    // Claves de API para servicios externos
     private final String openaiApiKey;
     private final String geminiApiKey;
     
+    /**
+     * Constructor con inyección de dependencias
+     * @Value obtiene las claves de API del archivo de propiedades
+     */
     public LLMService(LLMModelRepository modelRepository,
                      @Value("${openai.api.key}") String openaiApiKey,
                      @Value("${gemini.api.key}") String geminiApiKey) {
@@ -502,14 +555,28 @@ public class LLMService {
         this.geminiApiKey = geminiApiKey;
     }
     
+    /**
+     * Obtiene un modelo por su ID
+     * @return Optional<LLMModel> para manejar casos donde el modelo no existe
+     */
     public Optional<LLMModel> getModel(Long id) {
         return modelRepository.findById(id);
     }
     
+    /**
+     * Crea un nuevo modelo LLM
+     * @param model Modelo a crear
+     * @return Modelo creado con ID asignado
+     */
     public LLMModel createModel(LLMModel model) {
         return modelRepository.save(model);
     }
     
+    /**
+     * Agrega datos de entrenamiento a un modelo existente
+     * @param modelId ID del modelo
+     * @param data Datos de entrenamiento a agregar
+     */
     public void addTrainingData(Long modelId, TrainingData data) {
         modelRepository.findById(modelId).ifPresent(model -> {
             data.setModel(model);
@@ -518,12 +585,25 @@ public class LLMService {
         });
     }
     
+    /**
+     * Procesa una entrada usando un modelo específico
+     * @param modelId ID del modelo a usar
+     * @param input Texto de entrada a procesar
+     * @return Resultado del procesamiento
+     * @throws RuntimeException si el modelo no existe
+     */
     public String processWithModel(Long modelId, String input) {
         return modelRepository.findById(modelId)
             .map(model -> processInput(model, input))
             .orElseThrow(() -> new RuntimeException("Model not found"));
     }
     
+    /**
+     * Procesa la entrada según el tipo de modelo
+     * @param model Modelo a usar
+     * @param input Texto de entrada
+     * @return Resultado del procesamiento
+     */
     private String processInput(LLMModel model, String input) {
         switch (model.getModelType().toUpperCase()) {
             case "GPT":
@@ -533,6 +613,30 @@ public class LLMService {
             default:
                 throw new RuntimeException("Unsupported model type");
         }
+    }
+    
+    /**
+     * Procesa la entrada usando GPT
+     * @param model Modelo GPT
+     * @param input Texto de entrada
+     * @return Respuesta del modelo
+     */
+    private String processWithGPT(LLMModel model, String input) {
+        // Implementación de la llamada a la API de OpenAI
+        // Usa openaiApiKey y los parámetros del modelo
+        return "GPT response";
+    }
+    
+    /**
+     * Procesa la entrada usando Gemini
+     * @param model Modelo Gemini
+     * @param input Texto de entrada
+     * @return Respuesta del modelo
+     */
+    private String processWithGemini(LLMModel model, String input) {
+        // Implementación de la llamada a la API de Gemini
+        // Usa geminiApiKey y los parámetros del modelo
+        return "Gemini response";
     }
 }
 ```
@@ -544,45 +648,79 @@ public class LLMService {
 
 #### LLMAgentService
 ```java
+/**
+ * Servicio que integra el LLM con el agente inteligente.
+ * Maneja el entrenamiento y la aplicación de parámetros.
+ */
 @Service
 @Transactional
 public class LLMAgentService {
     private final LLMService llmService;
     private final Agent agent;
     
+    /**
+     * Constructor con inyección de dependencias
+     */
     public LLMAgentService(LLMService llmService, Agent agent) {
         this.llmService = llmService;
         this.agent = agent;
     }
     
+    /**
+     * Entrena el agente usando un modelo LLM específico
+     * @param modelId ID del modelo a usar para el entrenamiento
+     */
     public void trainAgentWithLLM(Long modelId) {
         Optional<LLMModel> modelOpt = llmService.getModel(modelId);
         if (modelOpt.isPresent()) {
             LLMModel model = modelOpt.get();
+            // Cambia el estado del agente a aprendizaje
             agent.updateState(AgentState.LEARNING);
             
             try {
+                // Procesa cada dato de entrenamiento
                 for (TrainingData data : model.getTrainingData()) {
                     processTrainingData(data);
                 }
             } finally {
+                // Asegura que el agente vuelva a estado IDLE
                 agent.updateState(AgentState.IDLE);
             }
         }
     }
     
+    /**
+     * Procesa un dato de entrenamiento individual
+     * @param data Dato de entrenamiento a procesar
+     */
     private void processTrainingData(TrainingData data) {
+        // Preprocesa el input
         String processedInput = preprocessInput(data.getInput());
+        
+        // Aplica el aprendizaje
         LearningResult result = applyLearning(processedInput);
+        
+        // Valida los resultados
         validateResults(result, data.getExpectedOutput());
     }
     
+    /**
+     * Aplica los parámetros de un modelo al agente
+     * @param modelId ID del modelo cuyos parámetros se aplicarán
+     */
     public void applyLLMParameters(Long modelId) {
         llmService.getModel(modelId).ifPresent(this::applyModelParameters);
     }
     
+    /**
+     * Aplica los parámetros de un modelo al agente
+     * @param model Modelo cuyos parámetros se aplicarán
+     */
     private void applyModelParameters(LLMModel model) {
+        // Actualiza los parámetros de comportamiento
         agent.getBehavior().updateParameters(model.getParameters());
+        
+        // Actualiza el contexto en la memoria
         agent.getMemory().updateModelContext(model);
     }
 }
@@ -597,21 +735,39 @@ public class LLMAgentService {
 
 #### LLMController
 ```java
+/**
+ * Controlador REST para la gestión de modelos LLM.
+ * Expone endpoints para crear modelos y procesar entradas.
+ */
 @RestController
 @RequestMapping("/api/llm")
 public class LLMController {
     private final LLMService llmService;
     
+    /**
+     * Constructor con inyección de dependencias
+     */
     public LLMController(LLMService llmService) {
         this.llmService = llmService;
     }
     
+    /**
+     * Crea un nuevo modelo LLM
+     * @param model Datos del modelo a crear
+     * @return Modelo creado con status 201
+     */
     @PostMapping("/models")
     public ResponseEntity<LLMModel> createModel(@RequestBody LLMModel model) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(llmService.createModel(model));
     }
     
+    /**
+     * Agrega datos de entrenamiento a un modelo
+     * @param id ID del modelo
+     * @param data Datos de entrenamiento
+     * @return Status 200 si se agregó correctamente
+     */
     @PostMapping("/models/{id}/training-data")
     public ResponseEntity<Void> addTrainingData(
             @PathVariable Long id,
@@ -620,6 +776,12 @@ public class LLMController {
         return ResponseEntity.ok().build();
     }
     
+    /**
+     * Procesa una entrada usando un modelo específico
+     * @param id ID del modelo a usar
+     * @param input Texto de entrada
+     * @return Resultado del procesamiento
+     */
     @PostMapping("/models/{id}/process")
     public ResponseEntity<String> processInput(
             @PathVariable Long id,
@@ -676,9 +838,25 @@ public class LLMAgentController {
 
 #### LLMModelRepository
 ```java
+/**
+ * Repositorio para operaciones de base de datos con modelos LLM.
+ * Extiende JpaRepository para operaciones CRUD básicas.
+ */
 @Repository
 public interface LLMModelRepository extends JpaRepository<LLMModel, Long> {
+    /**
+     * Busca modelos por tipo
+     * @param modelType Tipo de modelo (GPT, GEMINI, etc.)
+     * @return Lista de modelos del tipo especificado
+     */
     List<LLMModel> findByModelType(String modelType);
+    
+    /**
+     * Busca un modelo por nombre y versión
+     * @param name Nombre del modelo
+     * @param version Versión del modelo
+     * @return Optional con el modelo si existe
+     */
     Optional<LLMModel> findByNameAndVersion(String name, String version);
 }
 ```
