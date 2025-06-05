@@ -893,3 +893,363 @@ logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} -
 - Claves de API para servicios externos
 - Configuración de seguridad JWT
 - Configuración de logging
+
+## 🔄 Funcionamiento Detallado del LLM
+
+### 1. Arquitectura del LLM
+
+```mermaid
+graph TD
+    A[Input] --> B[Preprocesamiento]
+    B --> C[Modelo LLM]
+    C --> D[Postprocesamiento]
+    D --> E[Output]
+    
+    F[Entrenamiento] --> C
+    G[Parámetros] --> C
+    H[Memoria] --> C
+```
+
+### 2. Flujo de Procesamiento
+
+#### 2.1 Entrada de Datos
+```java
+/**
+ * Procesamiento de entrada en el LLM
+ */
+public class LLMProcessor {
+    /**
+     * Preprocesa el texto de entrada
+     * @param input Texto de entrada
+     * @return Texto procesado
+     */
+    private String preprocessInput(String input) {
+        // 1. Normalización
+        String normalized = input.trim().toLowerCase();
+        
+        // 2. Tokenización
+        List<String> tokens = tokenize(normalized);
+        
+        // 3. Limpieza
+        tokens = removeStopWords(tokens);
+        
+        // 4. Reconstrucción
+        return String.join(" ", tokens);
+    }
+    
+    /**
+     * Procesa el texto con el modelo
+     * @param model Modelo a usar
+     * @param input Texto procesado
+     * @return Resultado del modelo
+     */
+    private String processWithModel(LLMModel model, String input) {
+        // 1. Preparar contexto
+        Map<String, Object> context = prepareContext(model, input);
+        
+        // 2. Aplicar parámetros
+        applyModelParameters(model, context);
+        
+        // 3. Ejecutar modelo
+        return executeModel(model, context);
+    }
+}
+```
+
+#### 2.2 Procesamiento del Modelo
+```java
+/**
+ * Implementación del procesamiento del modelo
+ */
+public class ModelProcessor {
+    /**
+     * Ejecuta el modelo con el contexto dado
+     */
+    private String executeModel(LLMModel model, Map<String, Object> context) {
+        switch (model.getModelType()) {
+            case "GPT":
+                return processWithGPT(model, context);
+            case "GEMINI":
+                return processWithGemini(model, context);
+            default:
+                throw new UnsupportedModelException(model.getModelType());
+        }
+    }
+    
+    /**
+     * Procesa con GPT
+     */
+    private String processWithGPT(LLMModel model, Map<String, Object> context) {
+        // 1. Configurar cliente OpenAI
+        OpenAIClient client = new OpenAIClient(openaiApiKey);
+        
+        // 2. Preparar prompt
+        String prompt = buildPrompt(context);
+        
+        // 3. Configurar parámetros
+        CompletionRequest request = CompletionRequest.builder()
+            .model(model.getName())
+            .prompt(prompt)
+            .maxTokens(model.getMaxTokens())
+            .temperature(model.getTemperature())
+            .build();
+            
+        // 4. Ejecutar y obtener respuesta
+        CompletionResponse response = client.createCompletion(request);
+        return response.getChoices().get(0).getText();
+    }
+}
+```
+
+### 3. Sistema de Entrenamiento
+
+#### 3.1 Proceso de Entrenamiento
+```java
+/**
+ * Sistema de entrenamiento del LLM
+ */
+public class LLMTrainer {
+    /**
+     * Entrena el modelo con datos específicos
+     */
+    public void trainModel(LLMModel model, List<TrainingData> trainingData) {
+        // 1. Validar datos
+        validateTrainingData(trainingData);
+        
+        // 2. Preparar datos
+        List<TrainingExample> examples = prepareTrainingExamples(trainingData);
+        
+        // 3. Configurar entrenamiento
+        TrainingConfig config = createTrainingConfig(model);
+        
+        // 4. Ejecutar entrenamiento
+        trainModelWithConfig(model, examples, config);
+        
+        // 5. Validar resultados
+        validateTrainingResults(model);
+    }
+    
+    /**
+     * Prepara ejemplos de entrenamiento
+     */
+    private List<TrainingExample> prepareTrainingExamples(List<TrainingData> data) {
+        return data.stream()
+            .map(this::createTrainingExample)
+            .collect(Collectors.toList());
+    }
+}
+```
+
+#### 3.2 Validación y Evaluación
+```java
+/**
+ * Sistema de validación del LLM
+ */
+public class LLMValidator {
+    /**
+     * Evalúa el rendimiento del modelo
+     */
+    public ModelEvaluation evaluateModel(LLMModel model, List<TestData> testData) {
+        // 1. Preparar métricas
+        Metrics metrics = new Metrics();
+        
+        // 2. Ejecutar pruebas
+        for (TestData data : testData) {
+            String output = model.process(data.getInput());
+            metrics.update(data.getExpectedOutput(), output);
+        }
+        
+        // 3. Calcular resultados
+        return metrics.calculateResults();
+    }
+}
+```
+
+### 4. Integración con el Sistema
+
+#### 4.1 Configuración del Sistema
+```java
+/**
+ * Configuración del sistema LLM
+ */
+@Configuration
+public class LLMConfiguration {
+    @Bean
+    public LLMService llmService(
+            LLMModelRepository repository,
+            @Value("${openai.api.key}") String openaiKey,
+            @Value("${gemini.api.key}") String geminiKey) {
+        return new LLMService(repository, openaiKey, geminiKey);
+    }
+    
+    @Bean
+    public LLMAgentService llmAgentService(LLMService llmService, Agent agent) {
+        return new LLMAgentService(llmService, agent);
+    }
+}
+```
+
+#### 4.2 Ejemplo de Uso
+```java
+/**
+ * Ejemplo de implementación del LLM
+ */
+@Service
+public class LLMImplementation {
+    private final LLMService llmService;
+    private final LLMAgentService agentService;
+    
+    /**
+     * Procesa una solicitud usando el LLM
+     */
+    public String processRequest(String input, Long modelId) {
+        // 1. Obtener modelo
+        LLMModel model = llmService.getModel(modelId)
+            .orElseThrow(() -> new ModelNotFoundException(modelId));
+            
+        // 2. Procesar entrada
+        String processedInput = preprocessInput(input);
+        
+        // 3. Obtener respuesta
+        String response = llmService.processWithModel(modelId, processedInput);
+        
+        // 4. Postprocesar respuesta
+        return postprocessResponse(response);
+    }
+    
+    /**
+     * Entrena el agente con un modelo específico
+     */
+    public void trainAgent(Long modelId) {
+        // 1. Verificar modelo
+        if (!llmService.modelExists(modelId)) {
+            throw new ModelNotFoundException(modelId);
+        }
+        
+        // 2. Entrenar agente
+        agentService.trainAgentWithLLM(modelId);
+        
+        // 3. Aplicar parámetros
+        agentService.applyLLMParameters(modelId);
+    }
+}
+```
+
+### 5. Ejemplo de Implementación Completa
+
+```java
+/**
+ * Ejemplo de uso completo del sistema LLM
+ */
+@RestController
+@RequestMapping("/api/llm-implementation")
+public class LLMImplementationController {
+    private final LLMImplementation llmImplementation;
+    
+    /**
+     * Procesa una solicitud
+     */
+    @PostMapping("/process/{modelId}")
+    public ResponseEntity<String> processRequest(
+            @PathVariable Long modelId,
+            @RequestBody String input) {
+        try {
+            String response = llmImplementation.processRequest(input, modelId);
+            return ResponseEntity.ok(response);
+        } catch (ModelNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error processing request: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Entrena el agente
+     */
+    @PostMapping("/train/{modelId}")
+    public ResponseEntity<String> trainAgent(@PathVariable Long modelId) {
+        try {
+            llmImplementation.trainAgent(modelId);
+            return ResponseEntity.ok("Agent trained successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error training agent: " + e.getMessage());
+        }
+    }
+}
+```
+
+### 6. Pasos para Implementación
+
+1. **Configuración Inicial**
+   ```bash
+   # 1. Agregar dependencias en pom.xml
+   <dependency>
+       <groupId>com.ai.avance</groupId>
+       <artifactId>llm-core</artifactId>
+       <version>1.0.0</version>
+   </dependency>
+   
+   # 2. Configurar application.properties
+   openai.api.key=${OPENAI_API_KEY}
+   gemini.api.key=${GEMINI_API_KEY}
+   ```
+
+2. **Crear Modelo**
+   ```java
+   // 1. Crear instancia del modelo
+   LLMModel model = new LLMModel();
+   model.setName("MiModelo");
+   model.setVersion("1.0");
+   model.setModelType("GPT");
+   
+   // 2. Configurar parámetros
+   model.setMaxTokens(2048);
+   model.setTemperature(0.7);
+   
+   // 3. Guardar modelo
+   llmService.createModel(model);
+   ```
+
+3. **Agregar Datos de Entrenamiento**
+   ```java
+   // 1. Crear datos de entrenamiento
+   TrainingData data = new TrainingData();
+   data.setInput("Ejemplo de entrada");
+   data.setExpectedOutput("Salida esperada");
+   
+   // 2. Agregar al modelo
+   llmService.addTrainingData(modelId, data);
+   ```
+
+4. **Entrenar y Usar**
+   ```java
+   // 1. Entrenar el agente
+   llmAgentService.trainAgentWithLLM(modelId);
+   
+   // 2. Procesar una entrada
+   String response = llmService.processWithModel(modelId, "Nueva entrada");
+   ```
+
+### 7. Consideraciones de Implementación
+
+1. **Rendimiento**
+   - Caché de respuestas frecuentes
+   - Procesamiento asíncrono para tareas largas
+   - Límites de tokens y tiempo de respuesta
+
+2. **Seguridad**
+   - Validación de entradas
+   - Sanitización de respuestas
+   - Control de acceso a modelos
+
+3. **Mantenimiento**
+   - Monitoreo de uso
+   - Logging de errores
+   - Actualización de modelos
+
+4. **Escalabilidad**
+   - Balanceo de carga
+   - Replicación de modelos
+   - Gestión de recursos
